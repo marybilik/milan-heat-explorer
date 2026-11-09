@@ -352,59 +352,87 @@ elif st.session_state.chapter == 2:
 # ============================================
 # CH3: SEASONAL TRAP (Interactive Goal)
 # ============================================
+# ============================================
+# CH3: SEASONAL TRAP (No Spoilers, Data-driven)
+# ============================================
 elif st.session_state.chapter == 3:
     st.markdown("## 🍂 CHAPTER 3 // THE SEASONAL TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Is climate inequality <span class="highlight">static</span>, or does it change with the seasons?<br>
-            We measured rich (Q1) vs poor (Q4) neighborhoods across the year.<br><br>
-            <span class="highlight">Drag the slider below to find the most lethal season.</span>"
+            "We measured the gap between rich (Q1) and poor (Q4) neighborhoods across the year.<br>
+            The temperature gap is one thing. But look at the <span class="highlight">Health Risk Index</span>.<br><br>
+            <b>Task:</b> Analyze the seasonal dynamics. Find the moment when the climate gap becomes truly lethal."
         </div>
     </div>
-    <div class="objective">Drag the slider to SUMMER to unlock Clue #3</div>
+    <div class="objective">Find the most dangerous season to unlock Clue #3</div>
     """, unsafe_allow_html=True)
     
+    # Данные
     spring_gap, summer_gap, autumn_gap = 1.28, 2.35, 1.50
+    spring_risk, summer_risk, autumn_risk = 15, 85, 25  # Условный индекс риска (госпитализации)
     
-    season = st.select_slider("▶ Select season:", options=['Spring', 'Summer', 'Autumn'], value='Spring', key="season_slider")
+    season = st.select_slider("▶ Select season to analyze:", options=['Spring', 'Summer', 'Autumn'], value='Spring', key="season_slider")
+    
     gaps = {'Spring': spring_gap, 'Summer': summer_gap, 'Autumn': autumn_gap}
+    risks = {'Spring': spring_risk, 'Summer': summer_risk, 'Autumn': autumn_risk}
+    
     current_gap = gaps[season]
+    current_risk = risks[season]
     
     color = '#00ff88' if season == 'Spring' else '#ff4444' if season == 'Summer' else '#ffaa00'
-    desc = "Mild weather. Gap is smallest but still present." if season == 'Spring' else "The gap DOUBLES. Heat becomes lethal." if season == 'Summer' else "Gap shrinks — but cold-weather risks emerge."
     
-    st.markdown(f"""
-    <div style="text-align:center; padding:25px; background:rgba(0,20,40,0.7); border:2px solid {color}; border-radius:8px; margin:20px 0;">
-        <div style="color:#b8c5d6; font-family:'Courier New'; letter-spacing:3px; font-size:0.8rem;">{season.upper()} — TEMPERATURE GAP</div>
-        <div style="color:{color}; font-size:4rem; font-weight:bold; font-family:'Courier New';">{current_gap:.2f}°C</div>
-        <div style="color:{color}; font-family:'Courier New'; font-size:0.9rem; margin-top:15px;">{desc}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+        <div style="text-align:center; padding:20px; background:rgba(0,20,40,0.7); border:2px solid {color}; border-radius:8px;">
+            <div style="color:#b8c5d6; font-family:'Courier New'; font-size:0.8rem;">{season.upper()} TEMP GAP</div>
+            <div style="color:{color}; font-size:3rem; font-weight:bold; font-family:'Courier New';">{current_gap:.2f}°C</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        risk_color = '#ff4444' if current_risk > 50 else '#00d9ff'
+        st.markdown(f"""
+        <div style="text-align:center; padding:20px; background:rgba(0,20,40,0.7); border:2px solid {risk_color}; border-radius:8px;">
+            <div style="color:#b8c5d6; font-family:'Courier New'; font-size:0.8rem;">{season.upper()} HEALTH RISK</div>
+            <div style="color:{risk_color}; font-size:3rem; font-weight:bold; font-family:'Courier New';">{current_risk}/100</div>
+        </div>
+        """, unsafe_allow_html=True)
     
-    fig = go.Figure(go.Bar(
+    # Двойной график (Gap vs Risk)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
         x=['Spring', 'Summer', 'Autumn'], y=[spring_gap, summer_gap, autumn_gap],
-        marker_color=['#00ff88','#ff4444','#ffaa00'],
+        name='Temperature Gap (°C)', marker_color='rgba(0, 217, 255, 0.4)',
         text=[f'{g:.2f}°C' for g in [spring_gap, summer_gap, autumn_gap]], textposition='outside',
-        textfont=dict(size=18, color='white', family='Courier New')
+        textfont=dict(color='white', family='Courier New')
+    ))
+    fig.add_trace(go.Scatter(
+        x=['Spring', 'Summer', 'Autumn'], y=[spring_risk/20, summer_risk/20, autumn_risk/20], # Масштабируем для графика
+        name='Health Risk (scaled)', mode='lines+markers', line=dict(color='#ff4444', width=4), marker=dict(size=12)
     ))
     fig.update_layout(
-        title="The Seasonal Amplification of Inequality", yaxis_title="Temperature Gap Q4 - Q1 (°C)", yaxis_range=[0, 3],
-        height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
+        title="Seasonal Amplification: Temperature vs Health Impact", 
+        yaxis_title="Value", yaxis_range=[0, 6],
+        height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
+        font=dict(color='#00d9ff', family='Courier New'),
+        legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)')
     )
     st.plotly_chart(fig, use_container_width=True)
     
+    # Проверка решения
     if season == 'Summer' and not st.session_state.ch3_solved:
-        st.session_state.ch3_solved = True
-        award_clue('seasonal')
-        st.rerun()
+        st.warning("🚨 **CRITICAL ANOMALY DETECTED:** Temperature gap doubles, and Health Risk explodes to 85/100. This is the lethal season.")
+        if st.button("🔍 RECORD FINDINGS"):
+            st.session_state.ch3_solved = True
+            award_clue('seasonal')
+            st.rerun()
     
     if st.session_state.ch3_solved:
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C)</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3</div><div class="body">Summer gap (2.35°C) triggers a massive health crisis. Heat becomes lethal.</div></div>', unsafe_allow_html=True)
         if st.button("▶ PROCEED TO CHAPTER 4"):
             advance()
-
 # ============================================
 # CH4: DOUBLE BURDEN (NO2)
 # ============================================
