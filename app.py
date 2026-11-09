@@ -144,68 +144,67 @@ if 0 < st.session_state.chapter <= 9:
     st.progress(min(len(st.session_state.evidence)/9, 1.0))
 
 # ============================================
-# CH0: LAUNCH
+# CH0: LAUNCH (Fixed HTML rendering)
 # ============================================
-
 if st.session_state.chapter == 0:
     st.markdown("""
-    <div style="text-align:center; padding: 40px 20px 20px 20px;">
-        <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🛰️</div>
-        <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
-        <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
-        <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
-    </div>
-    """, unsafe_allow_html=True)
+<div style="text-align:center; padding: 40px 20px 20px 20px;">
+    <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🛰️</div>
+    <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
+    <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
+    <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
+</div>
+""", unsafe_allow_html=True)
     
     col1, col2 = st.columns([1.2, 1])
     
     with col1:
-        st.markdown("""
-        <div class="terminal" style="margin-top: 0;">
-            <div class="tag">▶ MISSION BRIEFING</div>
-            <div class="text">
-                Milan, Summer 2023. Surface temperatures hit <span class="highlight">56°C</span>. 
-                But satellite data reveals a disturbing pattern: <span class="highlight">the heat is not distributed equally</span>.<br><br>
-                
-                <b>Why Milan?</b> It's not just a fashion capital. It's a <span class="highlight">Climate Anomaly</span>. 
-                A Megalopolis where historic wealth (the cool, green center) abruptly borders industrial poverty 
-                (the suffocating, concrete outskirts). It is the perfect petri dish to study 
-                <span class="highlight">Climate Inequality</span> — where a person's zip code literally determines their body temperature.<br><br>
-                
-                Your mission: uncover <span class="highlight">who</span> is dying from heat — and <span class="highlight">why</span>.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="terminal" style="margin-top: 0;">'
+            '<div class="tag">▶ MISSION BRIEFING</div>'
+            '<div class="text">'
+            'Milan, Summer 2023. Surface temperatures hit <span class="highlight">56°C</span>. '
+            'But satellite data reveals a disturbing pattern: <span class="highlight">the heat is not distributed equally</span>.<br><br>'
+            '<b>Why Milan?</b> It\'s not just a fashion capital. It\'s a <span class="highlight">Climate Anomaly</span>. '
+            'A Megalopolis where historic wealth (the cool, green center) abruptly borders industrial poverty '
+            '(the suffocating, concrete outskirts). It is the perfect petri dish to study '
+            '<span class="highlight">Climate Inequality</span> — where a person\'s zip code literally determines their body temperature.<br><br>'
+            'Your mission: uncover <span class="highlight">who</span> is dying from heat — and <span class="highlight">why</span>.'
+            '</div>'
+            '</div>', 
+            unsafe_allow_html=True
+        )
         
     with col2:
-        st.markdown("""
-        <div class="terminal" style="margin-top: 0; border-left-color: #ffaa00; border-right-color: #ffaa00;">
-            <div class="tag" style="color: #ffaa00;">▶ SCIENTIFIC ARSENAL</div>
-            <div class="text" style="font-size: 0.85rem; line-height: 1.5;">
-                <b>[ DATA SOURCES ]</b><br>
-                🛰️ <b>Landsat 8/9:</b> 100m Thermal (LST)<br>
-                🛰️ <b>MODIS (NASA):</b> 24-year LST & NDVI trend<br>
-                🛰️ <b>Sentinel-5P (ESA):</b> NO2 Air Pollution<br>
-                👥 <b>GHSL (JRC):</b> 100m Population weight<br>
-                🏙️ <b>ISTAT/OSM:</b> Social Vulnerability Index<br><br>
-                
-                <b>[ ANALYTICAL WEAPONS ]</b><br>
-                📊 OLS & Spatial Lag Models<br>
-                🎯 FDR Multiple Testing Correction<br>
-                🗺️ GWR (Local Spatial Anomalies)<br>
-                🔬 Bivariate LISA (Spatial Clustering)<br>
-                📈 Quantile Regression (Extreme Tails)
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="terminal" style="margin-top: 0; border-left-color: #ffaa00; border-right-color: #ffaa00;">'
+            '<div class="tag" style="color: #ffaa00;">▶ SCIENTIFIC ARSENAL</div>'
+            '<div class="text" style="font-size: 0.85rem; line-height: 1.5;">'
+            '<b>[ DATA SOURCES ]</b><br>'
+            '🛰️ <b>Landsat 8/9:</b> 100m Thermal (LST)<br>'
+            '🛰️ <b>MODIS (NASA):</b> 24-year LST & NDVI trend<br>'
+            '🛰️ <b>Sentinel-5P (ESA):</b> NO2 Air Pollution<br>'
+            '👥 <b>GHSL (JRC):</b> 100m Population weight<br>'
+            '🏙️ <b>ISTAT/OSM:</b> Social Vulnerability Index<br><br>'
+            '<b>[ ANALYTICAL WEAPONS ]</b><br>'
+            '📊 OLS & Spatial Lag Models<br>'
+            '🎯 FDR Multiple Testing Correction<br>'
+            '🗺️ GWR (Local Spatial Anomalies)<br>'
+            '🔬 Bivariate LISA (Spatial Clustering)<br>'
+            '📈 Quantile Regression (Extreme Tails)'
+            '</div>'
+            '</div>', 
+            unsafe_allow_html=True
+        )
 
-    st.markdown("""
-    <div style="text-align: center; margin-top: 20px;">
-        <span style="color:#ff4444; font-family:'Courier New'; font-size:0.9rem;">
-            ⚠ 9 chapters · 9 pieces of evidence · 1 city in crisis
-        </span><span class="cursor" style="color:#ff4444;">█</span>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div style="text-align: center; margin-top: 20px;">'
+        '<span style="color:#ff4444; font-family:\'Courier New\'; font-size:0.9rem;">'
+        '⚠ 9 chapters · 9 pieces of evidence · 1 city in crisis'
+        '</span><span class="cursor" style="color:#ff4444;">█</span>'
+        '</div>', 
+        unsafe_allow_html=True
+    )
     
     st.markdown("<br>", unsafe_allow_html=True)
     
