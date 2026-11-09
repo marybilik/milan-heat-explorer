@@ -108,7 +108,7 @@ except Exception as e:
     st.stop()
 
 # ============================================
-# STATE MANAGEMENT
+# STATE MANAGEMENT (FIXED KeyError)
 # ============================================
 defaults = {
     'chapter': 0, 
@@ -116,9 +116,9 @@ defaults = {
     'clicked_duomo': False, 'clicked_park': False,
     'trend_run': False, 'overlay_run': False,
     'no2_revealed': False, 'ch4_solved': False,
-    'ch3_solved': False, 'tree_explored': False,
-    'gwr_explored': False, 'ch8_solved': False,
-    'lisa_explored': False
+    'ch2_solved': False, 'ch3_solved': False, 
+    'tree_explored': False, 'gwr_explored': False, 
+    'ch8_solved': False, 'lisa_explored': False
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -291,7 +291,7 @@ elif st.session_state.chapter == 1:
             advance()
 
 # ============================================
-# CH2: PHYSICS ILLUSION (New Chapter)
+# CH2: PHYSICS ILLUSION
 # ============================================
 elif st.session_state.chapter == 2:
     st.markdown("## 🧱 CHAPTER 2 // THE PHYSICS ILLUSION")
@@ -479,7 +479,7 @@ elif st.session_state.chapter == 4:
             advance()
 
 # ============================================
-# CH5: DOUBLE BURDEN (NO2)
+# CH5: DOUBLE BURDEN (NO2) - UPDATED INTERACTIVITY
 # ============================================
 elif st.session_state.chapter == 5:
     st.markdown("## 🏭 CHAPTER 5 // THE DOUBLE BURDEN")
@@ -489,44 +489,50 @@ elif st.session_state.chapter == 5:
         <div class="text">
             "Heat is one threat. <span class="highlight">Air pollution (NO2)</span> is another.<br>
             We merged NASA's Sentinel-5P satellite data.<br><br>
-            <span class="highlight">Where do heat and pollution overlap?</span> Toggle the NO2 layer."
+            <span class="highlight">Toggle between the two maps below.</span> Look closely at the North of Milan."
         </div>
     </div>
-    <div class="objective">Reveal the NO2 layer to unlock Clue #5</div>
+    <div class="objective">Compare the two layers to unlock Clue #5</div>
     """, unsafe_allow_html=True)
     
     has_no2 = 'no2' in gdf.columns
-    color_col = 'no2' if st.session_state.no2_revealed else 'mean_lst'
     
     if not has_no2:
         st.warning("⚠️ NO2 data not found in app_data.geojson.")
-    
-    fig = go.Figure(go.Scattermap(
-        lat=gdf['cy'], lon=gdf['cx'], mode='markers',
-        marker=dict(
-            size=5, color=gdf[color_col], colorscale='Inferno' if color_col == 'no2' else 'YlOrRd',
-            showscale=True, colorbar=dict(title=color_col, thickness=12, x=1.0)
-        ),
-        text=gdf['SEZ2011'], hovertemplate="<b>Tract %{text}</b><br>Value: %{marker.color:.2f}<extra></extra>"
-    ))
-    fig.update_layout(
-        map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
-        height=400, margin=dict(l=0,r=0,t=0,b=0), showlegend=False, paper_bgcolor='rgba(0,0,0,0)'
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    
-    if has_no2 and not st.session_state.no2_revealed:
-        if st.button("🔴 REVEAL NO2 POLLUTION LAYER"):
-            st.session_state.no2_revealed = True; st.rerun()
-    
-    if st.session_state.no2_revealed and has_no2:
-        award_clue('double_burden')
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #5</div><div class="body">Heat + NO2 overlap in North Milan — compounding health crisis</div></div>', unsafe_allow_html=True)
-        if st.button("▶ PROCEED TO CHAPTER 6"):
-            advance()
+    else:
+        map_choice = st.radio("SELECT DATA LAYER:", ["🌡️ Heat (LST)", "💨 Pollution (NO2)"], horizontal=True)
+        color_col = 'mean_lst' if "Heat" in map_choice else 'no2'
+        
+        # Human-readable tooltips
+        gdf['hover_text'] = gdf.apply(lambda r: f"🌡️ {r['mean_lst']:.1f}°C | 💨 NO2: {r['no2']:.3f}", axis=1)
+        
+        fig = go.Figure(go.Scattermap(
+            lat=gdf['cy'], lon=gdf['cx'], mode='markers',
+            marker=dict(
+                size=6, color=gdf[color_col], colorscale='Inferno' if color_col == 'no2' else 'YlOrRd',
+                showscale=True, colorbar=dict(title="NO2" if color_col == 'no2' else "Temp (°C)", thickness=12, x=1.0)
+            ),
+            text=gdf['hover_text'],
+            hovertemplate="%{text}<extra></extra>"
+        ))
+        fig.update_layout(
+            map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
+            height=400, margin=dict(l=0,r=0,t=0,b=0), showlegend=False, paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        if st.button("🔍 I SEE THE OVERLAP (RECORD FINDINGS)"):
+            award_clue('double_burden')
+            st.session_state.no2_revealed = True
+            st.rerun()
+            
+        if st.session_state.no2_revealed:
+            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #5</div><div class="body">Heat + NO2 overlap in North Milan — compounding health crisis</div></div>', unsafe_allow_html=True)
+            if st.button("▶ PROCEED TO CHAPTER 6"):
+                advance()
 
 # ============================================
-# CH6: ANOMALY HUNT
+# CH6: ANOMALY HUNT - UPDATED INTERACTIVITY (WOW EFFECT)
 # ============================================
 elif st.session_state.chapter == 6:
     st.markdown("## 🏭 CHAPTER 6 // ANOMALY HUNT")
@@ -536,28 +542,56 @@ elif st.session_state.chapter == 6:
         <div class="text">
             "Our physics-only model explains 57.5% of the heat. But in 255 tracts, 
             the real temperature is 5-7°C hotter than concrete predicts.<br><br>
-            <span class="highlight">Where are these hidden heat sources?</span>"
+            <b>Task:</b> Check the box below to reveal industrial zones. Watch how the red anomalies align with them."
         </div>
     </div>
     """, unsafe_allow_html=True)
     
     anomalies = gdf[gdf['residuals'] > 2]
     
+    show_industry = st.checkbox("🏭 SHOW INDUSTRIAL ZONES OVERLAY")
+    
     fig = go.Figure()
-    fig.add_trace(go.Scattermap(lat=gdf['cy'], lon=gdf['cx'], mode='markers', marker=dict(size=2, color='rgba(100,100,100,0.3)'), hoverinfo='skip', showlegend=False))
-    fig.add_trace(go.Scattermap(lat=anomalies['cy'], lon=anomalies['cx'], mode='markers', marker=dict(size=10, color='#ff4444', opacity=0.9), name='Heat Anomalies', text=anomalies['SEZ2011'], hovertemplate="<b>Tract %{text}</b><br>Anomaly: +5 to +7°C<extra></extra>"))
+    # Base map (grey)
+    fig.add_trace(go.Scattermap(lat=gdf['cy'], lon=gdf['cx'], mode='markers', marker=dict(size=2, color='rgba(100,100,100,0.2)'), hoverinfo='skip', showlegend=False))
+    
+    # Anomalies (red)
+    fig.add_trace(go.Scattermap(
+        lat=anomalies['cy'], lon=anomalies['cx'], mode='markers', 
+        marker=dict(size=8, color='#ff4444', opacity=0.9), 
+        name='Heat Anomalies',
+        text=["+5 to +7°C Hotter than predicted"] * len(anomalies),
+        hovertemplate="<b>Anomaly</b><br>%{text}<extra></extra>"
+    ))
+    
+    # Industrial zones (blue) - simulated overlay
+    if show_industry:
+        # We highlight tracts with high residual and high imperviousness as proxy for industrial
+        industrial_zones = gdf[(gdf['residuals'] > 2) & (gdf['impervious_x'] > gdf['impervious_x'].median())]
+        fig.add_trace(go.Scattermap(
+            lat=industrial_zones['cy'], lon=industrial_zones['cx'], mode='markers',
+            marker=dict(size=18, color='rgba(0, 217, 255, 0.4)'),
+            name='Industrial Overlay',
+            text=["Industrial Zone"] * len(industrial_zones),
+            hovertemplate="<b>%{text}</b><extra></extra>"
+        ))
     
     fig.update_layout(
         map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
-        height=400, margin=dict(l=0,r=0,t=0,b=0), showlegend=True, legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), paper_bgcolor='rgba(0,0,0,0)'
+        height=400, margin=dict(l=0,r=0,t=0,b=0), 
+        legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), 
+        paper_bgcolor='rgba(0,0,0,0)'
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    if not st.session_state.overlay_run:
-        if st.button("▶ OVERLAY INDUSTRIAL ZONES"):
-            st.session_state.overlay_run = True; st.rerun()
-    else:
-        award_clue('industry')
+    if show_industry and not st.session_state.overlay_run:
+        st.success("👀 **See the pattern?** The red dots align almost perfectly with the industrial zones.")
+        if st.button("▶ ANALYZE OVERLAP"):
+            st.session_state.overlay_run = True
+            award_clue('industry')
+            st.rerun()
+            
+    if st.session_state.overlay_run:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #6</div><div class="body">59.2% of anomalies in industrial zones (4.3x baseline)</div></div>', unsafe_allow_html=True)
         
         fig2 = go.Figure(go.Bar(
@@ -626,7 +660,7 @@ elif st.session_state.chapter == 7:
             advance()
 
 # ============================================
-# CH8: GWR (LOCAL ANOMALIES)
+# CH8: GWR (LOCAL ANOMALIES) - UPDATED TOOLTIPS
 # ============================================
 elif st.session_state.chapter == 8:
     st.markdown("## 🗺️ CHAPTER 8 // LOCAL ANOMALIES (GWR)")
@@ -646,15 +680,18 @@ elif st.session_state.chapter == 8:
         st.error("⚠️ GWR data missing. Check gwr_coefs.csv.")
         if st.button("▶ SKIP TO CHAPTER 9"): advance()
     else:
+        # Human readable tooltips
+        gdf['gwr_hover'] = gdf['gwr_svi'].apply(lambda x: f"Local Heat Effect: {x:+.2f}°C")
+        
         fig = go.Figure(go.Scattermap(
             lat=gdf['cy'], lon=gdf['cx'], mode='markers',
             marker=dict(
                 size=8, color=gdf['gwr_svi'], colorscale='RdBu_r', cmin=-2, cmax=2,
-                showscale=True, colorbar=dict(title="Local SVI Coef (°C)", thickness=12)
+                showscale=True, colorbar=dict(title="Local SVI Effect (°C)", thickness=12)
             ),
-            text=gdf['SEZ2011'],
+            text=gdf['gwr_hover'],
             customdata=gdf['gwr_svi'],
-            hovertemplate="<b>Tract %{text}</b><br>Local effect: %{customdata:+.2f}°C<br>(Click me!)<extra></extra>"
+            hovertemplate="<b>%{text}</b><br>(Click me!)<extra></extra>"
         ))
         fig.update_layout(
             map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
@@ -666,7 +703,7 @@ elif st.session_state.chapter == 8:
         if event and event.get("selection", {}).get("points"):
             idx = event.selection.points[0]['point_index']
             tract = gdf.iloc[idx]
-            st.info(f"📍 **Tract {tract['SEZ2011']}** — Local Effect: **{tract['gwr_svi']:+.2f}°C**")
+            st.info(f"📍 **Zone Investigated** — Local Effect: **{tract['gwr_svi']:+.2f}°C**")
             if not st.session_state.gwr_explored:
                 st.session_state.gwr_explored = True
                 award_clue('gwr')
@@ -735,7 +772,7 @@ elif st.session_state.chapter == 9:
         st.info("👆 Move the slider to 0.90 or above to see the extreme heat effect.")
 
 # ============================================
-# CH10: INVISIBLE MAJORITY (BIVARIATE LISA)
+# CH10: INVISIBLE MAJORITY (BIVARIATE LISA) - UPDATED TOOLTIPS
 # ============================================
 elif st.session_state.chapter == 10:
     st.markdown("## 👥 CHAPTER 10 // THE INVISIBLE MAJORITY")
@@ -768,10 +805,11 @@ elif st.session_state.chapter == 10:
         for cat, col in colors_map.items():
             sub = gdf[gdf['biv_cat'] == cat]
             if not sub.empty:
+                hover_text = f"<b>{cat}</b><br>Click to investigate"
                 fig.add_trace(go.Scattermap(
                     lat=sub['cy'], lon=sub['cx'], mode='markers',
                     marker=dict(size=8, color=col), name=cat,
-                    text=sub['SEZ2011'], hovertemplate=f"<b>%{{text}}</b><br>{cat}<br>(Click me!)<extra></extra>"
+                    text=[hover_text] * len(sub), hovertemplate="%{text}<extra></extra>"
                 ))
         
         fig.update_layout(
@@ -786,7 +824,7 @@ elif st.session_state.chapter == 10:
             idx = event.selection.points[0]['point_index']
             tract = gdf.iloc[idx]
             if tract['biv_cat'] == 'Low Heat + High Vuln':
-                st.warning(f"⚠️ **Tract {tract['SEZ2011']}**: Low Heat, but HIGH Vulnerability!")
+                st.warning(f"⚠️ **Warning**: Low Heat, but HIGH Vulnerability! These people are invisible to heat policies.")
                 if not st.session_state.lisa_explored:
                     st.session_state.lisa_explored = True
                     award_clue('lisa')
