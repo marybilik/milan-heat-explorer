@@ -444,38 +444,45 @@ elif st.session_state.chapter == 3:
 # ============================================
 # CH4: SEASONAL TRAP
 # ============================================
+# ============================================
+# CH4: SEASONAL TRAP (Fixed UI & Winter added)
+# ============================================
 elif st.session_state.chapter == 4:
     st.markdown("## 🍂 CHAPTER 4 // THE SEASONAL TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            We tracked the temperature gap across the year. <br>
-            <b>Task:</b> Drag the slider below to find the moment when the climate gap becomes truly lethal.
+            We tracked the temperature gap across the entire year. Notice how the gap behaves.<br>
+            In Winter, the gap disappears (or even reverses). But as the sun gets hotter, something dangerous happens.<br><br>
+            <b>Task:</b> Select a season below to find the moment when the climate gap becomes truly lethal.
         </div>
     </div>
     <div class="objective">Find the most dangerous season to unlock Clue #4</div>
     """, unsafe_allow_html=True)
     
-    spring_gap, summer_gap, autumn_gap = 1.28, 2.35, 1.50
-    spring_risk, summer_risk, autumn_risk = 15, 85, 25
+    # Данные для 4 сезонов (Зима добавлена)
+    seasons_data = {
+        'Winter': {'gap': -0.15, 'risk': 40, 'color': '#3498db', 'desc': "Heat gap vanishes. Cold risk is high, but it hits everyone equally."},
+        'Spring': {'gap': 1.28, 'risk': 15, 'color': '#00ff88', 'desc': "Mild weather. Gap is small but present."},
+        'Summer': {'gap': 2.35, 'risk': 85, 'color': '#ff4444', 'desc': "The gap DOUBLES. Heat becomes lethal."},
+        'Autumn': {'gap': 1.50, 'risk': 25, 'color': '#ffaa00', 'desc': "Gap shrinks. But the damage is already done."}
+    }
     
-    season = st.select_slider("▶ Select season to analyze:", options=['Spring', 'Summer', 'Autumn'], value='Spring', key="season_slider")
+    # Заменяем слайдер на горизонтальные кнопки
+    season = st.radio("▶ SELECT SEASON TO ANALYZE:", list(seasons_data.keys()), horizontal=True, index=1, key="season_radio")
     
-    gaps = {'Spring': spring_gap, 'Summer': summer_gap, 'Autumn': autumn_gap}
-    risks = {'Spring': spring_risk, 'Summer': summer_risk, 'Autumn': autumn_risk}
-    
-    current_gap = gaps[season]
-    current_risk = risks[season]
-    
-    color = '#00ff88' if season == 'Spring' else '#ff4444' if season == 'Summer' else '#ffaa00'
+    current_gap = seasons_data[season]['gap']
+    current_risk = seasons_data[season]['risk']
+    color = seasons_data[season]['color']
+    desc = seasons_data[season]['desc']
     
     col1, col2 = st.columns(2)
     with col1:
         st.markdown(f"""
         <div style="text-align:center; padding:20px; background:rgba(0,20,40,0.7); border:2px solid {color}; border-radius:8px;">
             <div style="color:#b8c5d6; font-family:'Courier New'; font-size:0.8rem;">{season.upper()} TEMP GAP</div>
-            <div style="color:{color}; font-size:3rem; font-weight:bold; font-family:'Courier New';">{current_gap:.2f}°C</div>
+            <div style="color:{color}; font-size:3rem; font-weight:bold; font-family:'Courier New';">{current_gap:+.2f}°C</div>
         </div>
         """, unsafe_allow_html=True)
     with col2:
@@ -487,32 +494,49 @@ elif st.session_state.chapter == 4:
         </div>
         """, unsafe_allow_html=True)
     
+    # Обновленный график с 4 сезонами
     fig = go.Figure()
+    
+    # Бар-чарт для температуры
     fig.add_trace(go.Bar(
-        x=['Spring', 'Summer', 'Autumn'], y=[spring_gap, summer_gap, autumn_gap],
-        name='Temperature Gap (°C)', marker_color='rgba(0, 217, 255, 0.4)',
-        text=[f'{g:.2f}°C' for g in [spring_gap, summer_gap, autumn_gap]], textposition='outside',
+        x=list(seasons_data.keys()), 
+        y=[seasons_data[s]['gap'] for s in seasons_data],
+        name='Temperature Gap (°C)', 
+        marker_color=['#3498db', 'rgba(0,217,255,0.4)', 'rgba(0,217,255,0.4)', 'rgba(0,217,255,0.4)'],
+        text=[f"{seasons_data[s]['gap']:+.2f}°C" for s in seasons_data], 
+        textposition='outside',
         textfont=dict(color='white', family='Courier New')
     ))
+    
+    # Линия для риска здоровья (масштабированная)
     fig.add_trace(go.Scatter(
-        x=['Spring', 'Summer', 'Autumn'], y=[spring_risk/20, summer_risk/20, autumn_risk/20],
-        name='Health Risk (scaled)', mode='lines+markers', line=dict(color='#ff4444', width=4), marker=dict(size=12)
+        x=list(seasons_data.keys()), 
+        y=[seasons_data[s]['risk']/20 for s in seasons_data],
+        name='Health Risk (scaled)', 
+        mode='lines+markers', 
+        line=dict(color='#ff4444', width=4), 
+        marker=dict(size=12)
     ))
+    
     fig.update_layout(
         title="Seasonal Amplification: Temperature vs Health Impact", 
-        yaxis_title="Value", yaxis_range=[0, 6],
+        yaxis_title="Value", yaxis_range=[-1, 6],
         height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
         font=dict(color='#00d9ff', family='Courier New'),
         legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)')
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    if season == 'Summer' and not st.session_state.ch4_solved:
-        st.warning("🚨 **CRITICAL ANOMALY DETECTED:** Temperature gap doubles, and Health Risk explodes to 85/100. This is the lethal season.")
-        if st.button("🔍 RECORD FINDINGS"):
-            st.session_state.ch4_solved = True
-            award_clue('seasonal')
-            st.rerun()
+    # Логика проверки
+    if season == 'Summer':
+        if not st.session_state.ch4_solved:
+            st.warning(f"🚨 **CRITICAL ANOMALY DETECTED:** {desc}")
+            if st.button("🔍 RECORD FINDINGS"):
+                st.session_state.ch4_solved = True
+                award_clue('seasonal')
+                st.rerun()
+    else:
+        st.info(f"ℹ️ **Analysis for {season}:** {desc} Look for the season where the red line spikes.")
     
     if st.session_state.ch4_solved:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C). Heat becomes lethal.</div></div>', unsafe_allow_html=True)
@@ -521,7 +545,7 @@ elif st.session_state.chapter == 4:
         <div class="terminal">
             <div class="tag">▶ DETECTIVE NOTE</div>
             <div class="text">
-                Climate inequality is a summer time-bomb. It strikes exactly when the heat becomes lethal. 
+                Climate inequality is a summer time-bomb. It lies dormant in Winter, but strikes exactly when the heat becomes lethal. 
                 But heat isn't the only thing choking these neighborhoods. Let's look at the air itself.
             </div>
         </div>
