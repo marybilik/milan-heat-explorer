@@ -442,10 +442,7 @@ elif st.session_state.chapter == 3:
             advance()
 
 # ============================================
-# CH4: SEASONAL TRAP
-# ============================================
-# ============================================
-# CH4: SEASONAL TRAP (Fixed UI & Winter added)
+# CH4: SEASONAL TRAP (Fixed UI + Trend Graph)
 # ============================================
 elif st.session_state.chapter == 4:
     st.markdown("## 🍂 CHAPTER 4 // THE SEASONAL TRAP")
@@ -453,15 +450,13 @@ elif st.session_state.chapter == 4:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            We tracked the temperature gap across the entire year. Notice how the gap behaves.<br>
-            In Winter, the gap disappears (or even reverses). But as the sun gets hotter, something dangerous happens.<br><br>
-            <b>Task:</b> Select a season below to find the moment when the climate gap becomes truly lethal.
+            We tracked the temperature gap across the entire year.<br>
+            <b>Task:</b> Select a season to analyze. Find the moment when the climate gap becomes truly lethal.
         </div>
     </div>
     <div class="objective">Find the most dangerous season to unlock Clue #4</div>
     """, unsafe_allow_html=True)
     
-    # Данные для 4 сезонов (Зима добавлена)
     seasons_data = {
         'Winter': {'gap': -0.15, 'risk': 40, 'color': '#3498db', 'desc': "Heat gap vanishes. Cold risk is high, but it hits everyone equally."},
         'Spring': {'gap': 1.28, 'risk': 15, 'color': '#00ff88', 'desc': "Mild weather. Gap is small but present."},
@@ -469,7 +464,6 @@ elif st.session_state.chapter == 4:
         'Autumn': {'gap': 1.50, 'risk': 25, 'color': '#ffaa00', 'desc': "Gap shrinks. But the damage is already done."}
     }
     
-    # Заменяем слайдер на горизонтальные кнопки
     season = st.radio("▶ SELECT SEASON TO ANALYZE:", list(seasons_data.keys()), horizontal=True, index=1, key="season_radio")
     
     current_gap = seasons_data[season]['gap']
@@ -493,41 +487,7 @@ elif st.session_state.chapter == 4:
             <div style="color:{risk_color}; font-size:3rem; font-weight:bold; font-family:'Courier New';">{current_risk}/100</div>
         </div>
         """, unsafe_allow_html=True)
-    
-    # Обновленный график с 4 сезонами
-    fig = go.Figure()
-    
-    # Бар-чарт для температуры
-    fig.add_trace(go.Bar(
-        x=list(seasons_data.keys()), 
-        y=[seasons_data[s]['gap'] for s in seasons_data],
-        name='Temperature Gap (°C)', 
-        marker_color=['#3498db', 'rgba(0,217,255,0.4)', 'rgba(0,217,255,0.4)', 'rgba(0,217,255,0.4)'],
-        text=[f"{seasons_data[s]['gap']:+.2f}°C" for s in seasons_data], 
-        textposition='outside',
-        textfont=dict(color='white', family='Courier New')
-    ))
-    
-    # Линия для риска здоровья (масштабированная)
-    fig.add_trace(go.Scatter(
-        x=list(seasons_data.keys()), 
-        y=[seasons_data[s]['risk']/20 for s in seasons_data],
-        name='Health Risk (scaled)', 
-        mode='lines+markers', 
-        line=dict(color='#ff4444', width=4), 
-        marker=dict(size=12)
-    ))
-    
-    fig.update_layout(
-        title="Seasonal Amplification: Temperature vs Health Impact", 
-        yaxis_title="Value", yaxis_range=[-1, 6],
-        height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', 
-        font=dict(color='#00d9ff', family='Courier New'),
-        legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)')
-    )
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Логика проверки
+        
     if season == 'Summer':
         if not st.session_state.ch4_solved:
             st.warning(f"🚨 **CRITICAL ANOMALY DETECTED:** {desc}")
@@ -535,27 +495,71 @@ elif st.session_state.chapter == 4:
                 st.session_state.ch4_solved = True
                 award_clue('seasonal')
                 st.rerun()
-    else:
-        st.info(f"ℹ️ **Analysis for {season}:** {desc} Look for the season where the red line spikes.")
-    
-    if st.session_state.ch4_solved:
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C). Heat becomes lethal.</div></div>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div class="terminal">
-            <div class="tag">▶ DETECTIVE NOTE</div>
-            <div class="text">
-                Climate inequality is a summer time-bomb. It lies dormant in Winter, but strikes exactly when the heat becomes lethal. 
-                But heat isn't the only thing choking these neighborhoods. Let's look at the air itself.
+                
+        if st.session_state.ch4_solved:
+            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C). Heat becomes lethal.</div></div>', unsafe_allow_html=True)
+            
+            # --- REVEAL THE TREND GRAPH ---
+            st.markdown("### 📈 THE 10-YEAR TREND")
+            st.write("This isn't a one-time fluke. Look at the Landsat data from 2014 to 2023.")
+            
+            if ts is not None:
+                fig = go.Figure()
+                # Q1 Rich
+                fig.add_trace(go.Scatter(
+                    x=ts['Year'], y=ts['Q1_Rich'], mode='lines+markers', name='Rich (Q1)',
+                    line=dict(color='#00ff88', width=4), marker=dict(size=8)
+                ))
+                # Q4 Poor
+                fig.add_trace(go.Scatter(
+                    x=ts['Year'], y=ts['Q4_Poor'], mode='lines+markers', name='Poor (Q4)',
+                    line=dict(color='#ff4444', width=4), marker=dict(size=8)
+                ))
+                
+                # Add trendlines
+                z1 = np.polyfit(ts['Year'], ts['Q1_Rich'], 1)
+                p1 = np.poly1d(z1)
+                z4 = np.polyfit(ts['Year'], ts['Q4_Poor'], 1)
+                p4 = np.poly1d(z4)
+                
+                fig.add_trace(go.Scatter(
+                    x=ts['Year'], y=p1(ts['Year']), mode='lines', name='Rich Trend',
+                    line=dict(color='#00ff88', width=2, dash='dash'), showlegend=False
+                ))
+                fig.add_trace(go.Scatter(
+                    x=ts['Year'], y=p4(ts['Year']), mode='lines', name='Poor Trend',
+                    line=dict(color='#ff4444', width=2, dash='dash'), showlegend=False
+                ))
+                
+                fig.update_layout(
+                    title="Landsat 10-Year Trend: Rich vs Poor Heat Gap",
+                    xaxis_title="Year", yaxis_title="Mean Summer LST (°C)",
+                    height=400, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+                    font=dict(color='#00d9ff', family='Courier New'),
+                    legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)')
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                st.caption("Notice how the red line (Poor) is steeper than the green line (Rich). The gap is widening.")
+            else:
+                st.warning("⚠️ Time series data not found.")
+                
+            st.markdown("""
+            <div class="terminal">
+                <div class="tag">▶ DETECTIVE NOTE</div>
+                <div class="text">
+                    Climate inequality is a summer time-bomb. It lies dormant in Winter, but strikes exactly when the heat becomes lethal. 
+                    But heat isn't the only thing choking these neighborhoods. Let's look at the air itself.
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("▶ TRACE THE AIR POLLUTION"):
-            advance()
+            """, unsafe_allow_html=True)
+            
+            if st.button("▶ TRACE THE AIR POLLUTION"):
+                advance()
+    else:
+        st.info(f"ℹ️ **Analysis for {season}:** {desc} Look for the season where the risk spikes.")
 
 # ============================================
-# CH5: DOUBLE BURDEN (NO2)
+# CH5: DOUBLE BURDEN (NO2) - Fixed Map
 # ============================================
 elif st.session_state.chapter == 5:
     st.markdown("## 🏭 CHAPTER 5 // THE DOUBLE BURDEN")
@@ -578,15 +582,21 @@ elif st.session_state.chapter == 5:
         map_choice = st.radio("SELECT DATA LAYER:", ["🌡️ Heat (LST)", "💨 Pollution (NO2)"], horizontal=True)
         color_col = 'mean_lst' if "Heat" in map_choice else 'no2'
         
-        gdf['hover_text'] = gdf.apply(lambda r: f"🌡️ {r['mean_lst']:.1f}°C | 💨 NO2: {r['no2']:.3f}", axis=1)
+        # Clean dataframe for NO2 to avoid white spots
+        if color_col == 'no2':
+            plot_df = gdf.dropna(subset=['no2']).copy()
+        else:
+            plot_df = gdf.copy()
+            
+        plot_df['hover_text'] = plot_df.apply(lambda r: f"🌡️ {r['mean_lst']:.1f}°C | 💨 NO2: {r['no2']:.3f}", axis=1)
         
         fig = go.Figure(go.Scattermap(
-            lat=gdf['cy'], lon=gdf['cx'], mode='markers',
+            lat=plot_df['cy'], lon=plot_df['cx'], mode='markers',
             marker=dict(
-                size=6, color=gdf[color_col], colorscale='Inferno' if color_col == 'no2' else 'YlOrRd',
+                size=6, color=plot_df[color_col], colorscale='Inferno' if color_col == 'no2' else 'YlOrRd',
                 showscale=True, colorbar=dict(title="NO2" if color_col == 'no2' else "Temp (°C)", thickness=12, x=1.0)
             ),
-            text=gdf['hover_text'],
+            text=plot_df['hover_text'],
             hovertemplate="%{text}<extra></extra>"
         ))
         fig.update_layout(
@@ -752,7 +762,7 @@ elif st.session_state.chapter == 7:
             advance()
 
 # ============================================
-# CH8: GWR (LOCAL ANOMALIES)
+# CH8: GWR (LOCAL ANOMALIES) - Fixed Map & Error
 # ============================================
 elif st.session_state.chapter == 8:
     st.markdown("## 🗺️ CHAPTER 8 // LOCAL ANOMALIES (GWR)")
@@ -762,27 +772,28 @@ elif st.session_state.chapter == 8:
         <div class="text">
             We ran a Geographically Weighted Regression. The global effect of vulnerability is small (+0.047°C). 
             But locally, it explodes.<br><br>
-            <b>Task:</b> Click on a <span style="color:#ff4444;">DARK RED</span> dot on the map to see where vulnerability hurts the most.
+            <b>Task:</b> Explore the map. Click on a <b>DARK RED</b> zone to investigate where vulnerability hurts the most.
         </div>
     </div>
-    <div class="objective">Click a red dot on the map to unlock Clue #8</div>
     """, unsafe_allow_html=True)
     
     if 'gwr_svi' not in gdf.columns or gdf['gwr_svi'].isna().all():
         st.error("⚠️ GWR data missing. Check gwr_coefs.csv.")
         if st.button("▶ SKIP TO CHAPTER 9"): advance()
     else:
-        gdf['gwr_hover'] = gdf['gwr_svi'].apply(lambda x: f"Local Heat Effect: {x:+.2f}°C")
+        # CLEAN DATA TO AVOID WHITE SPOTS
+        plot_df = gdf.dropna(subset=['gwr_svi']).copy()
+        plot_df['gwr_hover'] = plot_df['gwr_svi'].apply(lambda x: f"Local Heat Effect: {x:+.2f}°C")
         
         fig = go.Figure(go.Scattermap(
-            lat=gdf['cy'], lon=gdf['cx'], mode='markers',
+            lat=plot_df['cy'], lon=plot_df['cx'], mode='markers',
             marker=dict(
-                size=8, color=gdf['gwr_svi'], colorscale='RdBu_r', cmin=-2, cmax=2,
+                size=10, color=plot_df['gwr_svi'], colorscale='RdBu_r', cmin=-2, cmax=2,
                 showscale=True, colorbar=dict(title="Local SVI Effect (°C)", thickness=12)
             ),
-            text=gdf['gwr_hover'],
-            customdata=gdf['gwr_svi'],
-            hovertemplate="<b>%{text}</b><br>(Click me!)<extra></extra>"
+            text=plot_df['gwr_hover'],
+            customdata=plot_df.index, # Send index to avoid ValueError
+            hovertemplate="<b>%{text}</b><br>Click to investigate<extra></extra>"
         ))
         fig.update_layout(
             map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
@@ -792,13 +803,16 @@ elif st.session_state.chapter == 8:
         event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="gwr_map")
         
         if event and event.get("selection", {}).get("points"):
-            idx = event.selection.points[0]['point_index']
-            tract = gdf.iloc[idx]
-            st.info(f"📍 **Zone Investigated** — Local Effect: **{tract['gwr_svi']:+.2f}°C**")
-            if not st.session_state.gwr_explored:
-                st.session_state.gwr_explored = True
-                award_clue('gwr')
-                st.rerun()
+            point = event.selection.points[0]
+            # Get customdata which is the original index
+            if 'customdata' in point:
+                idx = point['customdata']
+                tract = gdf.loc[idx]
+                st.info(f"📍 **Zone Investigated** — Local Effect: **{tract['gwr_svi']:+.2f}°C**")
+                if not st.session_state.gwr_explored:
+                    st.session_state.gwr_explored = True
+                    award_clue('gwr')
+                    st.rerun()
 
         if st.session_state.gwr_explored:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #8</div><div class="body">Vulnerability effect ranges from -1.9°C to +1.8°C locally!</div></div>', unsafe_allow_html=True)
@@ -875,7 +889,7 @@ elif st.session_state.chapter == 9:
         st.info("👆 Move the slider to 0.90 or above to see the extreme heat effect.")
 
 # ============================================
-# CH10: INVISIBLE MAJORITY (BIVARIATE LISA) - FULLY REDESIGNED
+# CH10: INVISIBLE MAJORITY (BIVARIATE LISA)
 # ============================================
 elif st.session_state.chapter == 10:
     st.markdown("## 👥 CHAPTER 10 // THE INVISIBLE MAJORITY")
@@ -887,17 +901,15 @@ elif st.session_state.chapter == 10:
             🔴 <b>Red:</b> High Heat + High Vulnerability (Obvious targets)<br>
             🟠 <b>Orange:</b> Low Heat + High Vulnerability (The Hidden Ones)<br>
             🔵 <b>Blue:</b> Low Heat + Low Vulnerability (Safe zones)<br><br>
-            <span class="highlight">Click on an ORANGE dot to reveal the trap.</span>
+            <span class="highlight">Find and click on an ORANGE dot to reveal the trap.</span>
         </div>
     </div>
-    <div class="objective">Click an orange dot to unlock Clue #10</div>
     """, unsafe_allow_html=True)
     
     if 'biv_cat' not in gdf.columns:
         st.warning("⚠️ Bivariate LISA data not found.")
         if st.button("▶ CLOSE THE CASE"): advance()
     else:
-        # Filter only the most important 3 categories to remove clutter
         key_cats = ['High Heat + High Vuln', 'Low Heat + High Vuln', 'Low Heat + Low Vuln']
         colors_map = {
             'High Heat + High Vuln': '#e74c3c',
@@ -916,7 +928,9 @@ elif st.session_state.chapter == 10:
                                 color=colors_map[cat],
                                 line=dict(width=1, color='white') if cat == 'Low Heat + High Vuln' else None), 
                     name=cat,
-                    text=[hover_text] * len(sub), hovertemplate="%{text}<extra></extra>"
+                    text=[hover_text] * len(sub), 
+                    customdata=sub.index,
+                    hovertemplate="%{text}<extra></extra>"
                 ))
         
         fig.update_layout(
@@ -929,15 +943,10 @@ elif st.session_state.chapter == 10:
         event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="lisa_map")
         
         if event and event.get("selection", {}).get("points"):
-            idx = event.selection.points[0]['point_index']
-            # Since we filtered the dataframe, point_index refers to the new filtered trace.
-            # We need to find which trace it was and get the correct data.
-            try:
-                point = event.selection.points[0]
-                curve_number = point['curve_number']
-                cat_name = key_cats[curve_number]
-                sub_df = gdf[gdf['biv_cat'] == cat_name]
-                tract = sub_df.iloc[point['point_index']]
+            point = event.selection.points[0]
+            if 'customdata' in point:
+                idx = point['customdata']
+                tract = gdf.loc[idx]
                 
                 if tract['biv_cat'] == 'Low Heat + High Vuln':
                     st.warning(f"⚠️ **Warning**: Low Heat, but HIGH Vulnerability! These people are invisible to heat policies.")
@@ -949,8 +958,6 @@ elif st.session_state.chapter == 10:
                     st.error(f"❌ **Target missed**: This is a Red zone. High heat AND high vulnerability. We already know about these. Look for the ORANGE dots.")
                 elif tract['biv_cat'] == 'Low Heat + Low Vuln':
                     st.info(f"✅ **Safe Zone**: Low heat, low vulnerability. No action needed here. Look for the ORANGE dots.")
-            except Exception as e:
-                st.error("Please click directly on a colored dot.")
 
         if st.session_state.lisa_explored:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #10</div><div class="body">687 tracts of vulnerable people live in "cool" areas. Policy targeting only hot zones will miss them!</div></div>', unsafe_allow_html=True)
