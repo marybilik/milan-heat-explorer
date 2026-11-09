@@ -10,7 +10,7 @@ import numpy as np
 # ============================================
 # CONFIG & NASA CSS
 # ============================================
-st.set_page_config(page_title="NASA :: MILAN HEAT CASE", page_icon="🛰️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="NASA // MILAN HEAT CASE", page_icon="🛰️", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
@@ -81,15 +81,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================
-# DATA LOADING
+# DATA LOADING & MERGING (Fixing GWR bug)
 # ============================================
 @st.cache_data
 def load_data():
     gdf = gpd.read_file("app_data.geojson")
+    gdf['SEZ2011'] = gdf['SEZ2011'].astype(str)
+    
+    # Auto-merge GWR if missing but file exists
+    if os.path.exists("gwr_coefs.csv") and 'gwr_svi' not in gdf.columns:
+        gwr = pd.read_csv("gwr_coefs.csv")
+        gwr['SEZ2011'] = gwr['SEZ2011'].astype(str)
+        gdf = gdf.merge(gwr[['SEZ2011', 'gwr_svi']], on='SEZ2011', how='left')
+    
     gdf_wgs = gdf.to_crs(epsg=4326)
     gdf['cx'] = gdf_wgs.geometry.centroid.x
     gdf['cy'] = gdf_wgs.geometry.centroid.y
-    gdf['SEZ2011'] = gdf['SEZ2011'].astype(str)
     
     ts = pd.read_csv("time_series.csv") if os.path.exists("time_series.csv") else None
     return gdf, ts
@@ -108,7 +115,7 @@ defaults = {
     'evidence': [],
     'clicked_duomo': False, 'clicked_park': False,
     'trend_run': False, 'overlay_run': False,
-    'no2_revealed': False, 'seasonal_explored': False,
+    'no2_revealed': False, 'ch3_solved': False,
     'ch2_solved': False, 'tree_explored': False,
     'gwr_explored': False, 'ch8_solved': False,
     'lisa_explored': False
@@ -128,7 +135,7 @@ def advance():
 CHAPTERS = ["CALIBRATION","FACTORS","SEASONS","POLLUTION","ANOMALIES","TREES","GWR","QUANTILE","PARADOX","CASE CLOSED"]
 
 # ============================================
-# STATUS BAR (No XP)
+# STATUS BAR
 # ============================================
 if 0 < st.session_state.chapter <= 9:
     ch = int(st.session_state.chapter)
@@ -136,7 +143,7 @@ if 0 < st.session_state.chapter <= 9:
     st.markdown(f"""
     <div class="mission-header">
         <div><span class="label">🛰️ MISSION:</span> <span class="val">MILAN HEAT</span></div>
-        <div><span class="label">CHAPTER:</span> <span class="val">{ch}/9 · {CHAPTERS[ch-1]}</span></div>
+        <div><span class="label">CHAPTER:</span> <span class="val">{ch}/9 // {CHAPTERS[ch-1]}</span></div>
         <div><span class="label">RANK:</span> <span class="val">{rank}</span></div>
         <div><span class="label">EVIDENCE:</span> <span class="val">{len(st.session_state.evidence)}/9</span></div>
     </div>
@@ -144,17 +151,17 @@ if 0 < st.session_state.chapter <= 9:
     st.progress(min(len(st.session_state.evidence)/9, 1.0))
 
 # ============================================
-# CH0: LAUNCH (Fixed HTML rendering)
+# CH0: LAUNCH
 # ============================================
 if st.session_state.chapter == 0:
     st.markdown("""
-<div style="text-align:center; padding: 40px 20px 20px 20px;">
-    <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🛰️</div>
-    <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
-    <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
-    <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
-</div>
-""", unsafe_allow_html=True)
+    <div style="text-align:center; padding: 40px 20px 20px 20px;">
+        <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🛰️</div>
+        <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
+        <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
+        <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2 = st.columns([1.2, 1])
     
@@ -208,7 +215,6 @@ if st.session_state.chapter == 0:
     
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Center the button
     _, col_btn, _ = st.columns([1, 1, 1])
     with col_btn:
         if st.button("▶ INITIATE MISSION", use_container_width=True):
@@ -218,7 +224,7 @@ if st.session_state.chapter == 0:
 # CH1: CALIBRATION
 # ============================================
 elif st.session_state.chapter == 1:
-    st.markdown("## 📍 CHAPTER 1 :: CALIBRATION")
+    st.markdown("## 📍 CHAPTER 1 // CALIBRATION")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
@@ -286,10 +292,10 @@ elif st.session_state.chapter == 1:
             advance()
 
 # ============================================
-# CH2: FACTOR ANALYSIS (Fixed Logic & Clarity)
+# CH2: FACTOR ANALYSIS
 # ============================================
 elif st.session_state.chapter == 2:
-    st.markdown("## 🔍 CHAPTER 2 :: FACTOR ANALYSIS")
+    st.markdown("## 🔍 CHAPTER 2 // FACTOR ANALYSIS")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
@@ -344,24 +350,25 @@ elif st.session_state.chapter == 2:
             advance()
 
 # ============================================
-# CH3: SEASONAL TRAP
+# CH3: SEASONAL TRAP (Interactive Goal)
 # ============================================
 elif st.session_state.chapter == 3:
-    st.markdown("## 🍂 CHAPTER 3 :: THE SEASONAL TRAP")
+    st.markdown("## 🍂 CHAPTER 3 // THE SEASONAL TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
             "Is climate inequality <span class="highlight">static</span>, or does it change with the seasons?<br>
-            We measured rich (Q1) vs poor (Q4) neighborhoods across Spring, Summer, and Autumn.<br><br>
-            <span class="highlight">Use the slider to select a season</span> and compare the gaps."
+            We measured rich (Q1) vs poor (Q4) neighborhoods across the year.<br><br>
+            <span class="highlight">Drag the slider below to find the most lethal season.</span>"
         </div>
     </div>
+    <div class="objective">Drag the slider to SUMMER to unlock Clue #3</div>
     """, unsafe_allow_html=True)
     
     spring_gap, summer_gap, autumn_gap = 1.28, 2.35, 1.50
     
-    season = st.select_slider("▶ Select season:", options=['Spring', 'Summer', 'Autumn'], value='Spring')
+    season = st.select_slider("▶ Select season:", options=['Spring', 'Summer', 'Autumn'], value='Spring', key="season_slider")
     gaps = {'Spring': spring_gap, 'Summer': summer_gap, 'Autumn': autumn_gap}
     current_gap = gaps[season]
     
@@ -388,11 +395,12 @@ elif st.session_state.chapter == 3:
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    if not st.session_state.seasonal_explored:
-        if st.button("▶ RECORD FINDINGS"):
-            st.session_state.seasonal_explored = True; st.rerun()
-    else:
+    if season == 'Summer' and not st.session_state.ch3_solved:
+        st.session_state.ch3_solved = True
         award_clue('seasonal')
+        st.rerun()
+    
+    if st.session_state.ch3_solved:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C)</div></div>', unsafe_allow_html=True)
         if st.button("▶ PROCEED TO CHAPTER 4"):
             advance()
@@ -401,7 +409,7 @@ elif st.session_state.chapter == 3:
 # CH4: DOUBLE BURDEN (NO2)
 # ============================================
 elif st.session_state.chapter == 4:
-    st.markdown("## 🏭 CHAPTER 4 :: THE DOUBLE BURDEN")
+    st.markdown("## 🏭 CHAPTER 4 // THE DOUBLE BURDEN")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
@@ -448,7 +456,7 @@ elif st.session_state.chapter == 4:
 # CH5: ANOMALY HUNT
 # ============================================
 elif st.session_state.chapter == 5:
-    st.markdown("## 🏭 CHAPTER 5 :: ANOMALY HUNT")
+    st.markdown("## 🏭 CHAPTER 5 // ANOMALY HUNT")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
@@ -492,37 +500,47 @@ elif st.session_state.chapter == 5:
             advance()
 
 # ============================================
-# CH6: TREE TRAP
+# CH6: TREE TRAP (Added Slider Interactivity)
 # ============================================
 elif st.session_state.chapter == 6:
-    st.markdown("## 🌳 CHAPTER 6 :: THE TREE TRAP")
+    st.markdown("## 🌳 CHAPTER 6 // THE TREE TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
             "Industry is an invisible oven. But surely the solution is simple: 
             <span class="highlight">plant trees in poor neighborhoods</span>?<br><br>
-            Run the simulation. Watch the result closely."
+            <b>Task:</b> Allocate a tree-planting budget. Watch the temperature model."
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.tree_explored:
-        if st.button("▶ SIMULATE MASS TREE PLANTING"):
-            st.session_state.tree_explored = True; st.rerun()
-    else:
-        award_clue('tree_trap')
+    trees = st.slider("🌱 Select Tree Budget (Trees to Plant):", 0, 1000, 0, 50)
+    
+    # Fake model responding to slider
+    base_temp = 48.67
+    simulated_temp = base_temp + (0.04 * (trees / 1000)) # Slight positive correlation due to data ceiling
+    
+    fig = go.Figure(go.Bar(
+        x=['Current Temp', 'After Planting'], y=[base_temp, simulated_temp], 
+        marker_color=['#666','#ff4444'],
+        text=[f'{base_temp:.2f}°C', f'{simulated_temp:.2f}°C'], textposition='outside', 
+        textfont=dict(size=20, color='white', family='Courier New')
+    ))
+    fig.update_layout(
+        title=f"🌳 SIMULATION: {trees} Trees Planted", yaxis_title="Mean LST (°C)", yaxis_range=[48,49.2],
+        height=320, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if trees >= 500 and not st.session_state.tree_explored:
+        if st.button("▶ ANALYZE PARADOX"):
+            st.session_state.tree_explored = True
+            award_clue('tree_trap')
+            st.rerun()
+            
+    if st.session_state.tree_explored:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #6</div><div class="body">Trees: +0.04°C. Temperature INCREASES due to data ceiling</div></div>', unsafe_allow_html=True)
-        
-        fig = go.Figure(go.Bar(
-            x=['Current','After Trees'], y=[48.67, 48.70], marker_color=['#666','#ff4444'],
-            text=['48.67°C','+0.04°C ↑'], textposition='outside', textfont=dict(size=20, color='white', family='Courier New')
-        ))
-        fig.update_layout(
-            title="🌳 TREE INTERVENTION: THE PARADOX", yaxis_title="Mean LST (°C)", yaxis_range=[48,49.2],
-            height=320, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
-        )
-        st.plotly_chart(fig, use_container_width=True)
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ THE ECO-STRUCTURAL LOCK</div>
@@ -535,25 +553,24 @@ elif st.session_state.chapter == 6:
             advance()
 
 # ============================================
-# CH7: GWR (LOCAL ANOMALIES)
+# CH7: GWR (Added Click Interactivity)
 # ============================================
 elif st.session_state.chapter == 7:
-    st.markdown("## 🗺️ CHAPTER 7 :: LOCAL ANOMALIES (GWR)")
+    st.markdown("## 🗺️ CHAPTER 7 // LOCAL ANOMALIES (GWR)")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
             "We ran a <span class="highlight">Geographically Weighted Regression (GWR)</span>.<br>
             The global effect of vulnerability is small (+0.047°C). But locally, it explodes.<br><br>
-            <span class="highlight">Look at the map</span>. In some areas (Red), vulnerability adds >1.5°C. 
-            In others (Blue), it actually cools the area.
+            <b>Task:</b> Click on a <span style="color:#ff4444;">DARK RED</span> dot on the map to see where vulnerability hurts most."
         </div>
     </div>
-    <div class="objective">Explore the GWR map to unlock Clue #7</div>
+    <div class="objective">Click a red dot on the map to unlock Clue #7</div>
     """, unsafe_allow_html=True)
     
-    if 'gwr_svi' not in gdf.columns:
-        st.warning("⚠️ GWR data not found. Run Cell 12 in notebook.")
+    if 'gwr_svi' not in gdf.columns or gdf['gwr_svi'].isna().all():
+        st.error("⚠️ GWR data missing. Check gwr_coefs.csv.")
         if st.button("▶ SKIP TO CHAPTER 8"): advance()
     else:
         fig = go.Figure(go.Scattermap(
@@ -564,19 +581,25 @@ elif st.session_state.chapter == 7:
             ),
             text=gdf['SEZ2011'],
             customdata=gdf['gwr_svi'],
-            hovertemplate="<b>Tract %{text}</b><br>Local effect: %{customdata:+.2f}°C<extra></extra>"
+            hovertemplate="<b>Tract %{text}</b><br>Local effect: %{customdata:+.2f}°C<br>(Click me!)<extra></extra>"
         ))
         fig.update_layout(
             map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
-            height=400, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor='rgba(0,0,0,0)'
+            height=450, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(fig, use_container_width=True)
         
-        if not st.session_state.gwr_explored:
-            if st.button("▶ RECORD FINDINGS"):
-                st.session_state.gwr_explored = True; st.rerun()
-        else:
-            award_clue('gwr')
+        event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="gwr_map")
+        
+        if event and event.get("selection", {}).get("points"):
+            idx = event.selection.points[0]['point_index']
+            tract = gdf.iloc[idx]
+            st.info(f"📍 **Tract {tract['SEZ2011']}** — Local Effect: **{tract['gwr_svi']:+.2f}°C**")
+            if not st.session_state.gwr_explored:
+                st.session_state.gwr_explored = True
+                award_clue('gwr')
+                st.rerun()
+
+        if st.session_state.gwr_explored:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #7</div><div class="body">Vulnerability effect ranges from -1.9°C to +1.8°C locally!</div></div>', unsafe_allow_html=True)
             st.markdown("""
             <div class="terminal">
@@ -592,17 +615,16 @@ elif st.session_state.chapter == 7:
                 advance()
 
 # ============================================
-# CH8: QUANTILE REGRESSION (Fixed)
+# CH8: QUANTILE REGRESSION (Fixed slider logic)
 # ============================================
 elif st.session_state.chapter == 8:
-    st.markdown("## 📈 CHAPTER 8 :: EXTREME HEAT (QUANTILE)")
+    st.markdown("## 📈 CHAPTER 8 // EXTREME HEAT (QUANTILE)")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Normal regression only predicts the *average* day. But climate change is about *extremes*.<br>
-            We ran a Quantile Regression. Move the slider to see how the effect of vulnerability 
-            changes from a normal day (0.5) to a lethal heatwave (0.95)."
+            "Normal regression only predicts the *average* day. But climate change is about *extremes*.<br><br>
+            <b>Task:</b> Drag the slider to <span class="highlight">0.95 (Extreme Heat)</span> to see how the effect of vulnerability changes."
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -611,6 +633,12 @@ elif st.session_state.chapter == 8:
     
     svi_effect = 0.0077 if q < 0.5 else 0.0343 if q < 0.75 else 0.0642 if q < 0.9 else 0.0791
     
+    # Clear visual feedback based on slider
+    if q >= 0.9:
+        st.markdown(f"### 🔥 Current Mode: **EXTREME HEAT (Q={q:.2f})** — Effect: **{svi_effect:+.3f}°C**")
+    else:
+        st.markdown(f"### ☀️ Current Mode: **NORMAL DAY (Q={q:.2f})** — Effect: **{svi_effect:+.3f}°C**")
+
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=[0.1, 0.25, 0.5, 0.75, 0.9, 0.95], y=[0.029, 0.021, 0.0077, 0.0343, 0.0642, 0.0791], mode='lines+markers', line=dict(color='#ff4444', width=4), name='SVI Effect'))
     fig.add_trace(go.Scatter(x=[q], y=[svi_effect], mode='markers', marker=dict(size=20, color='#00ff88'), name='Current'))
@@ -625,6 +653,7 @@ elif st.session_state.chapter == 8:
     if q >= 0.9 and not st.session_state.ch8_solved:
         st.session_state.ch8_solved = True
         award_clue('quantile')
+        st.rerun()
     
     if st.session_state.ch8_solved:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #8</div><div class="body">Vulnerability effect grows 10x in extreme heat (0.95 quantile)!</div></div>', unsafe_allow_html=True)
@@ -637,7 +666,7 @@ elif st.session_state.chapter == 8:
 # CH9: INVISIBLE MAJORITY (BIVARIATE LISA)
 # ============================================
 elif st.session_state.chapter == 9:
-    st.markdown("## 👥 CHAPTER 9 :: THE INVISIBLE MAJORITY")
+    st.markdown("## 👥 CHAPTER 9 // THE INVISIBLE MAJORITY")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ FINAL TRANSMISSION</div>
@@ -645,14 +674,14 @@ elif st.session_state.chapter == 9:
             "We mapped the <span class="highlight">Bivariate LISA</span> (Local Indicators of Spatial Association).<br>
             Red zones = High Heat + High Vulnerability.<br>
             Orange zones = Low Heat + High Vulnerability.<br><br>
-            <span class="highlight">Look at the map carefully. Where should the city spend its money?</span>"
+            <b>Task:</b> Click on an <span style="color:#f39c12;">ORANGE</span> dot to reveal the hidden trap."
         </div>
     </div>
-    <div class="objective">Click the button to reveal the Trap</div>
+    <div class="objective">Click an orange dot to unlock Clue #9</div>
     """, unsafe_allow_html=True)
     
     if 'biv_cat' not in gdf.columns:
-        st.warning("⚠️ Bivariate LISA data not found. Run Cell 12.")
+        st.warning("⚠️ Bivariate LISA data not found.")
         if st.button("▶ CLOSE THE CASE"): advance()
     else:
         colors_map = {
@@ -670,7 +699,7 @@ elif st.session_state.chapter == 9:
                 fig.add_trace(go.Scattermap(
                     lat=sub['cy'], lon=sub['cx'], mode='markers',
                     marker=dict(size=8, color=col), name=cat,
-                    text=sub['SEZ2011'], hovertemplate=f"<b>%{{text}}</b><br>{cat}<extra></extra>"
+                    text=sub['SEZ2011'], hovertemplate=f"<b>%{{text}}</b><br>{cat}<br>(Click me!)<extra></extra>"
                 ))
         
         fig.update_layout(
@@ -678,15 +707,21 @@ elif st.session_state.chapter == 9:
             height=450, margin=dict(l=0,r=0,t=0,b=0),
             legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), paper_bgcolor='rgba(0,0,0,0)'
         )
-        st.plotly_chart(fig, use_container_width=True)
         
-        if not st.session_state.lisa_explored:
-            if st.button("▶ REVEAL THE TRAP"):
-                st.session_state.lisa_explored = True; st.rerun()
-        else:
-            award_clue('lisa')
+        event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="lisa_map")
+        
+        if event and event.get("selection", {}).get("points"):
+            idx = event.selection.points[0]['point_index']
+            tract = gdf.iloc[idx]
+            if tract['biv_cat'] == 'Low Heat + High Vuln':
+                st.warning(f"⚠️ **Tract {tract['SEZ2011']}**: Low Heat, but HIGH Vulnerability!")
+                if not st.session_state.lisa_explored:
+                    st.session_state.lisa_explored = True
+                    award_clue('lisa')
+                    st.rerun()
+
+        if st.session_state.lisa_explored:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #9</div><div class="body">687 tracts of vulnerable people live in "cool" areas. Policy targeting only hot zones will miss them!</div></div>', unsafe_allow_html=True)
-            
             st.markdown("""
             <div class="terminal">
                 <div class="tag">▶ THE PARADOX</div>
@@ -699,12 +734,11 @@ elif st.session_state.chapter == 9:
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            
             if st.button("▶ CLOSE THE CASE"):
                 advance()
 
 # ============================================
-# CH10: CASE CLOSED (FINAL REPORT)
+# CH10: CASE CLOSED
 # ============================================
 elif st.session_state.chapter >= 10:
     st.balloons()
@@ -766,7 +800,7 @@ elif st.session_state.chapter >= 10:
         """, unsafe_allow_html=True)
 
 # ============================================
-# PERSISTENT EVIDENCE LOG (No XP)
+# PERSISTENT EVIDENCE LOG
 # ============================================
 if len(st.session_state.evidence) > 0 and st.session_state.chapter < 10:
     st.markdown(f"""
