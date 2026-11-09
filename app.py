@@ -101,25 +101,25 @@ except Exception as e:
     st.stop()
 
 # ============================================
-# STATE
+# STATE MANAGEMENT
 # ============================================
 defaults = {
-    'chapter': 0, 'xp': 0, 'evidence': [],
+    'chapter': 0, 
+    'evidence': [],
     'clicked_duomo': False, 'clicked_park': False,
     'trend_run': False, 'overlay_run': False,
     'no2_revealed': False, 'seasonal_explored': False,
-    'paradox_explored': False, 'tree_explored': False,
-    'gwr_explored': False, 'quantile_explored': False,
+    'ch2_solved': False, 'tree_explored': False,
+    'gwr_explored': False, 'ch8_solved': False,
     'lisa_explored': False
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-def award_clue(key, xp=100):
+def award_clue(key):
     if key not in st.session_state.evidence:
         st.session_state.evidence.append(key)
-        st.session_state.xp += xp
 
 def advance():
     st.session_state.chapter += 1
@@ -128,18 +128,17 @@ def advance():
 CHAPTERS = ["CALIBRATION","FACTORS","SEASONS","POLLUTION","ANOMALIES","TREES","GWR","QUANTILE","PARADOX","CASE CLOSED"]
 
 # ============================================
-# STATUS BAR
+# STATUS BAR (No XP)
 # ============================================
 if 0 < st.session_state.chapter <= 9:
     ch = int(st.session_state.chapter)
-    rank = "CADET" if st.session_state.xp < 300 else "ANALYST" if st.session_state.xp < 600 else "DETECTIVE" if st.session_state.xp < 900 else "MASTER"
+    rank = "CADET" if len(st.session_state.evidence) < 3 else "ANALYST" if len(st.session_state.evidence) < 6 else "DETECTIVE" if len(st.session_state.evidence) < 9 else "MASTER"
     st.markdown(f"""
     <div class="mission-header">
         <div><span class="label">🛰️ MISSION:</span> <span class="val">MILAN HEAT</span></div>
         <div><span class="label">CHAPTER:</span> <span class="val">{ch}/9 · {CHAPTERS[ch-1]}</span></div>
         <div><span class="label">RANK:</span> <span class="val">{rank}</span></div>
         <div><span class="label">EVIDENCE:</span> <span class="val">{len(st.session_state.evidence)}/9</span></div>
-        <div><span class="label">XP:</span> <span class="val">{st.session_state.xp}</span></div>
     </div>
     """, unsafe_allow_html=True)
     st.progress(min(len(st.session_state.evidence)/9, 1.0))
@@ -163,7 +162,7 @@ if st.session_state.chapter == 0:
             Your mission: analyze NASA Landsat & MODIS imagery, social vulnerability data, 
             air pollution, spatial statistics, and machine learning to uncover 
             <span class="highlight">who</span> is dying from heat — and <span class="highlight">why</span>.<br><br>
-            <span style="color:#ff4444;">⚠ 9 chapters · 9 pieces of evidence · GHSL population weighting</span><span class="cursor">█</span>
+            <span style="color:#ff4444;">⚠ 9 chapters · 9 pieces of evidence</span><span class="cursor">█</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -242,7 +241,7 @@ elif st.session_state.chapter == 1:
             advance()
 
 # ============================================
-# CH2: FACTOR ANALYSIS
+# CH2: FACTOR ANALYSIS (Fixed Logic & Clarity)
 # ============================================
 elif st.session_state.chapter == 2:
     st.markdown("## 🔍 CHAPTER 2 :: FACTOR ANALYSIS")
@@ -250,9 +249,18 @@ elif st.session_state.chapter == 2:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "We ran <span class="highlight">8 regression models</span> on social vulnerability factors, 
-            all controlling for concrete and trees. Then applied <span class="highlight">FDR correction</span>.<br><br>
-            <span class="highlight">Which group is the TRUE hidden face of heat?</span>"
+            "We tested 8 social factors against heat, controlling for concrete and trees.<br>
+            Here is the <span class="highlight">FDR-corrected intelligence report</span>:"
+        </div>
+    </div>
+    <div class="terminal" style="border-left-color: #ffaa00;">
+        <div class="tag" style="color: #ffaa00;">▶ RAW INTEL (FDR-CORRECTED)</div>
+        <div class="text" style="font-size: 0.95rem;">
+            • <b>Elderly (65+):</b> Coef = -0.030 (They live in cool historic centers)<br>
+            • <b>Foreign nationals:</b> p-value = 0.14 (Eliminated as false positive)<br>
+            • <b>Unemployed:</b> Coef = -0.042 (Live in cool public housing)<br>
+            • <b>Young males:</b> p-value = 0.82 (Not significant)<br><br>
+            We need the factor that <b>survived the strict FDR test</b> with a <b>positive coefficient</b>.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -262,29 +270,33 @@ elif st.session_state.chapter == 2:
         "B) 🌍 Foreign nationals",
         "C) 🚪 One-person households (loneliness)",
         "D) 💼 Unemployed residents"
-    ], key="quiz_ch2")
+    ], key="quiz_ch2", index=None)
     
-    if st.button("▶ SUBMIT ANALYSIS"):
-        if "C)" in answer:
-            award_clue('loneliness')
-            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2</div><div class="body">Loneliness: +0.083°C (p<0.0001) — strongest predictor</div></div>', unsafe_allow_html=True)
-            
-            factors = ['One-person\nhouseholds','Foreign\nnationals','Young\nmales','Old\nfemales','Old\nmales','Unemployed']
-            coefs = [0.083, 0.029, 0.006, -0.008, -0.030, -0.042]
-            colors = ['#00ff88' if c>0.02 else '#ff4444' if c<-0.02 else '#666' for c in coefs]
-            fig = go.Figure(go.Bar(
-                x=factors, y=coefs, marker_color=colors,
-                text=[f'{c:+.3f}' for c in coefs], textposition='outside', textfont=dict(color='white', family='Courier New')
-            ))
-            fig.update_layout(
-                title="🎯 FDR-Corrected Coefficients", yaxis_title="Δ°C per SD", height=380,
-                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            if st.button("▶ PROCEED TO CHAPTER 3"):
-                advance()
-        else:
-            st.error("❌ INCORRECT. FDR eliminated the obvious suspects.")
+    if not st.session_state.ch2_solved:
+        if st.button("▶ SUBMIT ANALYSIS"):
+            if answer and "C)" in answer:
+                st.session_state.ch2_solved = True
+                award_clue('loneliness')
+                st.rerun()
+            else:
+                st.error("❌ INCORRECT. Check the p-values and coefficients in the RAW INTEL.")
+    else:
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2</div><div class="body">Loneliness: +0.083°C (p<0.0001) — strongest predictor</div></div>', unsafe_allow_html=True)
+        
+        factors = ['One-person\nhouseholds','Foreign\nnationals','Young\nmales','Old\nfemales','Old\nmales','Unemployed']
+        coefs = [0.083, 0.029, 0.006, -0.008, -0.030, -0.042]
+        colors = ['#00ff88' if c>0.02 else '#ff4444' if c<-0.02 else '#666' for c in coefs]
+        fig = go.Figure(go.Bar(
+            x=factors, y=coefs, marker_color=colors,
+            text=[f'{c:+.3f}' for c in coefs], textposition='outside', textfont=dict(color='white', family='Courier New')
+        ))
+        fig.update_layout(
+            title="🎯 FDR-Corrected Coefficients", yaxis_title="Δ°C per SD", height=380,
+            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        if st.button("▶ PROCEED TO CHAPTER 3"):
+            advance()
 
 # ============================================
 # CH3: SEASONAL TRAP
@@ -302,7 +314,6 @@ elif st.session_state.chapter == 3:
     </div>
     """, unsafe_allow_html=True)
     
-    # Values derived from notebook
     spring_gap, summer_gap, autumn_gap = 1.28, 2.35, 1.50
     
     season = st.select_slider("▶ Select season:", options=['Spring', 'Summer', 'Autumn'], value='Spring')
@@ -489,13 +500,13 @@ elif st.session_state.chapter == 7:
         <div class="text">
             "We ran a <span class="highlight">Geographically Weighted Regression (GWR)</span>.<br>
             The global effect of vulnerability is small (+0.047°C). But locally, it explodes.<br><br>
-            <span class="highlight">Click on the RED zones</span> (where vulnerability adds >1.5°C) to investigate."
+            <span class="highlight">Look at the map</span>. In some areas (Red), vulnerability adds >1.5°C. 
+            In others (Blue), it actually cools the area.
         </div>
     </div>
     <div class="objective">Explore the GWR map to unlock Clue #7</div>
     """, unsafe_allow_html=True)
     
-    # Add fallback in case GWR column is missing
     if 'gwr_svi' not in gdf.columns:
         st.warning("⚠️ GWR data not found. Run Cell 12 in notebook.")
         if st.button("▶ SKIP TO CHAPTER 8"): advance()
@@ -536,7 +547,7 @@ elif st.session_state.chapter == 7:
                 advance()
 
 # ============================================
-# CH8: QUANTILE REGRESSION
+# CH8: QUANTILE REGRESSION (Fixed)
 # ============================================
 elif st.session_state.chapter == 8:
     st.markdown("## 📈 CHAPTER 8 :: EXTREME HEAT (QUANTILE)")
@@ -553,7 +564,6 @@ elif st.session_state.chapter == 8:
     
     q = st.slider("▶ Select Quantile of Temperature:", 0.1, 0.95, 0.5, 0.05)
     
-    # Fake data approximating the actual results
     svi_effect = 0.0077 if q < 0.5 else 0.0343 if q < 0.75 else 0.0642 if q < 0.9 else 0.0791
     
     fig = go.Figure()
@@ -567,9 +577,12 @@ elif st.session_state.chapter == 8:
     )
     st.plotly_chart(fig, use_container_width=True)
     
-    if q >= 0.9:
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #8</div><div class="body">Vulnerability effect grows 10x in extreme heat (0.95 quantile)!</div></div>', unsafe_allow_html=True)
+    if q >= 0.9 and not st.session_state.ch8_solved:
+        st.session_state.ch8_solved = True
         award_clue('quantile')
+    
+    if st.session_state.ch8_solved:
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #8</div><div class="body">Vulnerability effect grows 10x in extreme heat (0.95 quantile)!</div></div>', unsafe_allow_html=True)
         if st.button("▶ PROCEED TO FINAL CHAPTER"):
             advance()
     else:
@@ -660,10 +673,9 @@ elif st.session_state.chapter >= 10:
     </div>
     """, unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     c1.metric("Evidence Collected", f"{len(st.session_state.evidence)}/9")
-    c2.metric("Total XP", st.session_state.xp)
-    c3.metric("Final Rank", "🕵️ MASTER DETECTIVE")
+    c2.metric("Final Rank", "🕵️ MASTER DETECTIVE")
     
     st.markdown("---")
     st.markdown("### ⚖️ FINAL REPORT")
@@ -709,12 +721,12 @@ elif st.session_state.chapter >= 10:
         """, unsafe_allow_html=True)
 
 # ============================================
-# PERSISTENT EVIDENCE LOG
+# PERSISTENT EVIDENCE LOG (No XP)
 # ============================================
 if len(st.session_state.evidence) > 0 and st.session_state.chapter < 10:
     st.markdown(f"""
     <div class="evidence-log">
-        <div class="header">▶ EVIDENCE LOG ({len(st.session_state.evidence)}/9) &nbsp;·&nbsp; XP: {st.session_state.xp}</div>
+        <div class="header">▶ EVIDENCE LOG ({len(st.session_state.evidence)}/9)</div>
         {''.join([f'<span class="evidence-item">🔍 {k}</span>' for k in st.session_state.evidence])}
     </div>
     """, unsafe_allow_html=True)
