@@ -5,123 +5,83 @@ import plotly.express as px
 import plotly.graph_objects as go
 import json
 import os
+import numpy as np
 
+# ============================================
+# CONFIG & NASA CSS
+# ============================================
 st.set_page_config(page_title="NASA :: MILAN HEAT CASE", page_icon="🛰️", layout="wide", initial_sidebar_state="collapsed")
 
-# ============================================
-# NASA MISSION CONTROL CSS
-# ============================================
 st.markdown("""
 <style>
-    /* Global - Deep Space */
     .stApp { background: #050814; color: #b8c5d6; }
     h1, h2, h3, h4 { color: #00d9ff !important; font-family: 'Courier New', monospace; letter-spacing: 2px; }
-    p, li, label, .stMarkdown, .stRadio label, .stSelectbox label { color: #b8c5d6 !important; font-family: 'Courier New', monospace; }
+    p, li, label, .stMarkdown, .stRadio label, .stSelectbox label, .stSlider label, .stCheckbox label { color: #b8c5d6 !important; font-family: 'Courier New', monospace; }
     
-    /* Terminal Scan Line */
     .stApp::before {
-        content: '';
-        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-        background: repeating-linear-gradient(0deg, rgba(0, 217, 255, 0.03) 0px, rgba(0, 217, 255, 0.03) 1px, transparent 1px, transparent 4px);
+        content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: repeating-linear-gradient(0deg, rgba(0,217,255,0.025) 0px, rgba(0,217,255,0.025) 1px, transparent 1px, transparent 4px);
         pointer-events: none; z-index: 9999;
     }
     
-    /* Blinking cursor */
-    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
-    .cursor { animation: blink 1s infinite; color: #00ff88; }
-    
-    /* Typewriter effect */
-    @keyframes typing {
-        from { max-width: 0; }
-        to { max-width: 100%; }
-    }
-    .typed { display: inline-block; overflow: hidden; white-space: nowrap; animation: typing 2s steps(60) forwards; vertical-align: bottom; }
-    
-    /* Mission header */
     .mission-header {
         background: linear-gradient(90deg, #0a1128, #001f3f);
-        border: 1px solid #00d9ff;
-        padding: 12px 20px; border-radius: 4px; margin-bottom: 20px;
-        display: flex; justify-content: space-between; align-items: center;
-        font-family: 'Courier New', monospace; font-size: 0.9rem;
-        box-shadow: 0 0 20px rgba(0, 217, 255, 0.2);
+        border: 1px solid #00d9ff; padding: 12px 20px; border-radius: 4px;
+        margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
+        font-family: 'Courier New', monospace; font-size: 0.85rem;
+        box-shadow: 0 0 20px rgba(0,217,255,0.2);
     }
     .mission-header .label { color: #00ff88; }
     .mission-header .val { color: #00d9ff; font-weight: bold; }
     
-    /* Terminal box */
     .terminal {
-        background: rgba(0, 20, 40, 0.7);
-        border-left: 3px solid #00d9ff;
-        border-right: 3px solid #00d9ff;
+        background: rgba(0,20,40,0.7); border-left: 3px solid #00d9ff; border-right: 3px solid #00d9ff;
         padding: 20px 25px; margin: 20px 0; border-radius: 4px;
         font-family: 'Courier New', monospace; font-size: 1rem; line-height: 1.7;
-        box-shadow: inset 0 0 30px rgba(0, 217, 255, 0.05);
+        box-shadow: inset 0 0 30px rgba(0,217,255,0.05);
     }
-    .terminal .tag { color: #ffaa00; font-weight: bold; letter-spacing: 3px; font-size: 0.85rem; }
+    .terminal .tag { color: #ffaa00; font-weight: bold; letter-spacing: 3px; font-size: 0.8rem; }
     .terminal .text { color: #e0e8f0; margin-top: 10px; }
     .terminal .highlight { color: #00ff88; font-weight: bold; }
     
-    /* Objective box */
     .objective {
-        background: rgba(255, 170, 0, 0.1); border: 1px solid #ffaa00;
-        padding: 15px 20px; border-radius: 4px; margin: 15px 0;
-        font-family: 'Courier New', monospace;
+        background: rgba(255,170,0,0.1); border: 1px solid #ffaa00;
+        padding: 12px 20px; border-radius: 4px; margin: 12px 0;
+        font-family: 'Courier New', monospace; font-size: 0.95rem;
     }
     .objective::before { content: '▸ OBJECTIVE: '; color: #ffaa00; font-weight: bold; }
     
-    /* Clue found animation */
-    @keyframes clueIn {
-        0% { transform: scale(0.8); opacity: 0; box-shadow: 0 0 0 rgba(0,255,136,0); }
-        50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 40px rgba(0,255,136,0.8); }
-        100% { transform: scale(1); opacity: 1; box-shadow: 0 0 20px rgba(0,255,136,0.4); }
-    }
+    @keyframes clueIn { 0% { transform: scale(0.8); opacity: 0; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
     .clue-unlocked {
         animation: clueIn 0.8s ease-out;
         background: linear-gradient(90deg, rgba(0,255,136,0.15), rgba(0,217,255,0.15));
-        border: 2px solid #00ff88; border-radius: 4px;
-        padding: 18px 25px; margin: 20px 0;
+        border: 2px solid #00ff88; border-radius: 4px; padding: 15px 25px; margin: 15px 0;
         font-family: 'Courier New', monospace; text-align: center;
     }
-    .clue-unlocked .title { color: #00ff88; font-weight: bold; letter-spacing: 4px; font-size: 0.85rem; }
-    .clue-unlocked .body { color: #ffffff; font-size: 1.1rem; margin-top: 8px; }
+    .clue-unlocked .title { color: #00ff88; font-weight: bold; letter-spacing: 4px; font-size: 0.8rem; }
+    .clue-unlocked .body { color: #ffffff; font-size: 1.05rem; margin-top: 6px; }
     
-    /* XP bar glow */
-    .stProgress > div > div > div > div {
-        background: linear-gradient(90deg, #00ff88, #00d9ff) !important;
-        box-shadow: 0 0 10px #00ff88 !important;
-    }
-    
-    /* Buttons - NASA style */
     .stButton > button {
         background: transparent; color: #00d9ff !important;
-        border: 2px solid #00d9ff; padding: 12px 30px;
+        border: 2px solid #00d9ff; padding: 12px 28px;
         font-family: 'Courier New', monospace; font-weight: bold;
-        letter-spacing: 3px; border-radius: 2px;
+        letter-spacing: 2px; border-radius: 2px;
         transition: all 0.2s; text-transform: uppercase;
     }
-    .stButton > button:hover {
-        background: #00d9ff; color: #050814 !important;
-        box-shadow: 0 0 30px rgba(0, 217, 255, 0.6);
-    }
+    .stButton > button:hover { background: #00d9ff; color: #050814 !important; box-shadow: 0 0 30px rgba(0,217,255,0.6); }
     
-    /* Radio buttons */
-    .stRadio > div { background: rgba(0,217,255,0.03); padding: 15px; border-radius: 4px; border: 1px solid rgba(0,217,255,0.2); }
+    .stRadio > div { background: rgba(0,217,255,0.03); padding: 12px; border-radius: 4px; border: 1px solid rgba(0,217,255,0.2); }
+    .stProgress > div > div > div > div { background: linear-gradient(90deg, #00ff88, #00d9ff) !important; box-shadow: 0 0 10px #00ff88 !important; }
     
-    /* Big NASA logo/rank */
-    .rank-badge { font-size: 5rem; text-align: center; filter: drop-shadow(0 0 20px #00d9ff); }
-    
-    /* Pulsing marker */
-    @keyframes pulse { 0% { r: 20; opacity: 1; } 100% { r: 40; opacity: 0; } }
-    
-    /* Hide header/footer */
-    #MainMenu { visibility: hidden; }
-    footer { visibility: hidden; }
+    .evidence-log { margin-top: 40px; padding: 15px 20px; border-top: 2px solid #00d9ff; background: rgba(0,20,40,0.5); }
+    .evidence-log .header { color: #00ff88; font-family: 'Courier New'; font-size: 0.75rem; letter-spacing: 3px; margin-bottom: 10px; }
+    .evidence-item { display: inline-block; background: rgba(0,255,136,0.1); border: 1px solid #00ff88; color: #00ff88; padding: 5px 12px; border-radius: 3px; margin: 3px; font-family: 'Courier New', monospace; font-size: 0.8rem; }
+    #MainMenu, footer { visibility: hidden; }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
-# DATA
+# DATA LOADING
 # ============================================
 @st.cache_data
 def load_data():
@@ -129,6 +89,8 @@ def load_data():
     gdf_wgs = gdf.to_crs(epsg=4326)
     gdf['cx'] = gdf_wgs.geometry.centroid.x
     gdf['cy'] = gdf_wgs.geometry.centroid.y
+    gdf['SEZ2011'] = gdf['SEZ2011'].astype(str)
+    
     ts = pd.read_csv("time_series.csv") if os.path.exists("time_series.csv") else None
     return gdf, ts
 
@@ -139,23 +101,22 @@ except Exception as e:
     st.stop()
 
 # ============================================
-# SESSION STATE
+# STATE
 # ============================================
 defaults = {
-    'chapter': 0,
-    'xp': 0,
-    'evidence': [],
-    'clicked_duomo': False,
-    'clicked_park': False,
-    'trend_run': False,
-    'overlay_run': False,
-    'intervention_done': False,
+    'chapter': 0, 'xp': 0, 'evidence': [],
+    'clicked_duomo': False, 'clicked_park': False,
+    'trend_run': False, 'overlay_run': False,
+    'no2_revealed': False, 'seasonal_explored': False,
+    'paradox_explored': False, 'tree_explored': False,
+    'gwr_explored': False, 'quantile_explored': False,
+    'lisa_explored': False
 }
 for k, v in defaults.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
-def award_clue(key, xp):
+def award_clue(key, xp=100):
     if key not in st.session_state.evidence:
         st.session_state.evidence.append(key)
         st.session_state.xp += xp
@@ -164,56 +125,53 @@ def advance():
     st.session_state.chapter += 1
     st.rerun()
 
+CHAPTERS = ["CALIBRATION","FACTORS","SEASONS","POLLUTION","ANOMALIES","TREES","GWR","QUANTILE","PARADOX","CASE CLOSED"]
+
 # ============================================
-# STATUS BAR (chapters 1-6)
+# STATUS BAR
 # ============================================
-if 0 < st.session_state.chapter <= 6:
-    rank = "CADET" if st.session_state.xp < 200 else "ANALYST" if st.session_state.xp < 400 else "DETECTIVE"
+if 0 < st.session_state.chapter <= 9:
+    ch = int(st.session_state.chapter)
+    rank = "CADET" if st.session_state.xp < 300 else "ANALYST" if st.session_state.xp < 600 else "DETECTIVE" if st.session_state.xp < 900 else "MASTER"
     st.markdown(f"""
     <div class="mission-header">
-        <div><span class="label">🛰️ NASA MISSION:</span> <span class="val">MILAN HEAT CASE</span></div>
-        <div><span class="label">CHAPTER:</span> <span class="val">{int(st.session_state.chapter)}/6</span></div>
+        <div><span class="label">🛰️ MISSION:</span> <span class="val">MILAN HEAT</span></div>
+        <div><span class="label">CHAPTER:</span> <span class="val">{ch}/9 · {CHAPTERS[ch-1]}</span></div>
         <div><span class="label">RANK:</span> <span class="val">{rank}</span></div>
-        <div><span class="label">EVIDENCE:</span> <span class="val">{len(st.session_state.evidence)}/6</span></div>
+        <div><span class="label">EVIDENCE:</span> <span class="val">{len(st.session_state.evidence)}/9</span></div>
         <div><span class="label">XP:</span> <span class="val">{st.session_state.xp}</span></div>
     </div>
     """, unsafe_allow_html=True)
-    st.progress(min(len(st.session_state.evidence)/6, 1.0))
+    st.progress(min(len(st.session_state.evidence)/9, 1.0))
 
 # ============================================
-# CHAPTER 0: LAUNCH SCREEN
+# CH0: LAUNCH
 # ============================================
 if st.session_state.chapter == 0:
     st.markdown("""
     <div style="text-align:center; padding: 60px 20px;">
         <div style="font-size: 7rem; filter: drop-shadow(0 0 30px #00d9ff);">🛰️</div>
-        <div style="color: #00ff88; font-family: 'Courier New'; letter-spacing: 8px; margin-top: 20px; font-size: 0.9rem;">NASA EARTH OBSERVATION SYSTEM</div>
-        <h1 style="font-size: 3.5rem; letter-spacing: 6px; margin: 15px 0; color: #00d9ff; text-shadow: 0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
-        <div style="color: #ffaa00; font-family: 'Courier New'; letter-spacing: 5px; font-size: 0.85rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
+        <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
+        <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
+        <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
     </div>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("""
-    <div class="terminal" style="max-width: 700px; margin: 40px auto;">
+    <div class="terminal" style="max-width:750px; margin:30px auto;">
         <div class="tag">▶ MISSION BRIEFING</div>
         <div class="text">
-            <span class="typed">Agent, we have detected an anomaly.</span><span class="cursor">█</span><br><br>
             Milan, Summer 2023. Surface temperatures reached <span class="highlight">56°C</span>.<br>
-            But satellite data reveals a disturbing pattern:<br>
-            <span class="highlight">The heat is not distributed equally.</span><br><br>
-            Your mission: use NASA Landsat imagery, social vulnerability data, 
-            and machine learning to uncover <span class="highlight">who</span> is dying 
-            from heat in one of Europe's richest cities — and <span class="highlight">why</span>.<br><br>
-            <span style="color: #ff4444;">⚠ This is a 6-chapter investigation. You must complete each objective.</span>
+            But satellite data reveals a disturbing pattern: <span class="highlight">the heat is not distributed equally</span>.<br><br>
+            Your mission: analyze NASA Landsat & MODIS imagery, social vulnerability data, 
+            air pollution, spatial statistics, and machine learning to uncover 
+            <span class="highlight">who</span> is dying from heat — and <span class="highlight">why</span>.<br><br>
+            <span style="color:#ff4444;">⚠ 9 chapters · 9 pieces of evidence · GHSL population weighting</span><span class="cursor">█</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
-    
     if st.button("▶ INITIATE MISSION"):
         advance()
 
 # ============================================
-# CHAPTER 1: CALIBRATION (click to measure)
+# CH1: CALIBRATION
 # ============================================
 elif st.session_state.chapter == 1:
     st.markdown("## 📍 CHAPTER 1 :: CALIBRATION")
@@ -221,108 +179,70 @@ elif st.session_state.chapter == 1:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Agent, first we calibrate your instruments. We have flagged two locations 
-            exactly <span class="highlight">300 meters apart</span>:<br>
-            🔴 <b>DUOMO</b> — historic city center, dense concrete<br>
+            "Agent, we calibrate your instruments first. Two locations, <span class="highlight">300m apart</span>:<br>
+            🔴 <b>DUOMO</b> — dense historic center<br>
             🟢 <b>PARCO SEMPIONE</b> — the city's largest park<br><br>
-            <span class="highlight">Click on BOTH markers on the map</span> to measure 
-            their surface temperature."
+            <span class="highlight">Click on BOTH markers on the map</span> to measure their temperature."
         </div>
     </div>
-    <div class="objective">Measure both points to unlock the first clue</div>
+    <div class="objective">Click Duomo + Park on the map to unlock Clue #1</div>
     """, unsafe_allow_html=True)
     
-    # Build map with 2 clickable points
     fig = go.Figure()
-    
-    duomo_color = '#00ff88' if st.session_state.clicked_duomo else '#ff4444'
-    park_color = '#00ff88' if st.session_state.clicked_park else '#00ff88'
-    
-    duomo_size = 40 if st.session_state.clicked_duomo else 30
-    park_size = 40 if st.session_state.clicked_park else 30
-    
     fig.add_trace(go.Scattermap(
         lat=[45.464], lon=[9.191], mode='markers+text',
-        marker=dict(size=duomo_size, color=duomo_color, allowoverlap=True),
+        marker=dict(size=40 if st.session_state.clicked_duomo else 30,
+                    color='#00ff88' if st.session_state.clicked_duomo else '#ff4444'),
         text=['🔴 DUOMO ✓' if st.session_state.clicked_duomo else '🔴 DUOMO'],
-        textposition='top center',
-        textfont=dict(color='#ff4444', size=14, family='Courier New'),
-        name='Duomo',
-        customdata=['duomo'] * 1,
-        hovertemplate='<b>DUOMO</b><br>Click to measure<extra></extra>'
+        textposition='top center', textfont=dict(color='#ff4444', size=14, family='Courier New'),
+        customdata=['duomo'], hovertemplate='<b>DUOMO</b><br>Click to measure<extra></extra>'
     ))
     fig.add_trace(go.Scattermap(
         lat=[45.472], lon=[9.179], mode='markers+text',
-        marker=dict(size=park_size, color=park_color, allowoverlap=True),
+        marker=dict(size=40 if st.session_state.clicked_park else 30, color='#00ff88'),
         text=['🟢 PARK ✓' if st.session_state.clicked_park else '🟢 PARK'],
-        textposition='top center',
-        textfont=dict(color='#00ff88', size=14, family='Courier New'),
-        name='Park',
-        customdata=['park'] * 1,
-        hovertemplate='<b>PARK</b><br>Click to measure<extra></extra>'
+        textposition='top center', textfont=dict(color='#00ff88', size=14, family='Courier New'),
+        customdata=['park'], hovertemplate='<b>PARK</b><br>Click to measure<extra></extra>'
     ))
-    
     fig.update_layout(
         map=dict(style="carto-darkmatter", center=dict(lat=45.468, lon=9.185), zoom=14),
-        height=450, margin=dict(l=0, r=0, t=0, b=0),
-        showlegend=False,
-        paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)'
+        height=420, margin=dict(l=0,r=0,t=0,b=0), showlegend=False, paper_bgcolor='rgba(0,0,0,0)'
     )
     
-    event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", 
-                             use_container_width=True, key="ch1_map")
+    event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="ch1_map")
     
     if event and event.get("selection", {}).get("points"):
-        for point in event.selection.points:
-            cd = point.get('customdata')
+        for p in event.selection.points:
+            cd = p.get('customdata')
             if cd == 'duomo' and not st.session_state.clicked_duomo:
-                st.session_state.clicked_duomo = True
-                st.rerun()
+                st.session_state.clicked_duomo = True; st.rerun()
             if cd == 'park' and not st.session_state.clicked_park:
-                st.session_state.clicked_park = True
-                st.rerun()
+                st.session_state.clicked_park = True; st.rerun()
     
-    # Show progress
     c1, c2 = st.columns(2)
-    c1.metric("🔴 Duomo Measured", "✓" if st.session_state.clicked_duomo else "❌ Pending")
-    c2.metric("🟢 Park Measured", "✓" if st.session_state.clicked_park else "❌ Pending")
+    c1.metric("🔴 Duomo", "✓ Measured" if st.session_state.clicked_duomo else "❌ Pending")
+    c2.metric("🟢 Park", "✓ Measured" if st.session_state.clicked_park else "❌ Pending")
     
-    # When both clicked → reveal
     if st.session_state.clicked_duomo and st.session_state.clicked_park:
-        award_clue('gap', 100)
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #1 UNLOCKED</div><div class="body">6.87°C difference across 300 meters</div></div>', unsafe_allow_html=True)
+        award_clue('gap')
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #1</div><div class="body">6.87°C difference across 300m</div></div>', unsafe_allow_html=True)
         
         fig2 = go.Figure(go.Bar(
-            x=['Duomo', 'Park'], y=[48.87, 42.00],
-            marker_color=['#ff4444', '#00ff88'],
-            text=['48.87°C', '42.00°C'], textposition='outside',
-            textfont=dict(size=20, color='white', family='Courier New')
+            x=['Duomo','Park'], y=[48.87, 42.00], marker_color=['#ff4444','#00ff88'],
+            text=['48.87°C','42.00°C'], textposition='outside', textfont=dict(size=20, color='white', family='Courier New')
         ))
         fig2.update_layout(
-            title="🔬 MEASUREMENT COMPLETE",
-            yaxis_title="LST (°C)", yaxis_range=[40, 51],
+            title="🔬 MEASUREMENT COMPLETE", yaxis_title="LST (°C)", yaxis_range=[40,51],
             plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00d9ff', family='Courier New'), height=400
+            font=dict(color='#00d9ff', family='Courier New'), height=380
         )
         st.plotly_chart(fig2, use_container_width=True)
-        
-        st.markdown("""
-        <div class="terminal">
-            <div class="tag">▶ ANALYSIS</div>
-            <div class="text">
-                "Confirmed. A single park cools its surroundings by nearly <span class="highlight">7°C</span>.<br><br>
-                If physics alone drove heat, we could just plant trees everywhere. 
-                But this case is more complicated. Next, we investigate 
-                <span class="highlight">who actually suffers</span> — and it's not who you think."
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
         
         if st.button("▶ PROCEED TO CHAPTER 2"):
             advance()
 
 # ============================================
-# CHAPTER 2: FACTOR ANALYSIS
+# CH2: FACTOR ANALYSIS
 # ============================================
 elif st.session_state.chapter == 2:
     st.markdown("## 🔍 CHAPTER 2 :: FACTOR ANALYSIS")
@@ -330,11 +250,9 @@ elif st.session_state.chapter == 2:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "We ran <span class="highlight">8 regression models</span> on social vulnerability 
-            factors, all controlling for concrete and trees. Then we applied 
-            <span class="highlight">Benjamini-Hochberg FDR correction</span> to eliminate false positives.<br><br>
-            The results are... surprising.<br><br>
-            <span class="highlight">Based on the data, which group is the TRUE hidden face of heat?</span>"
+            "We ran <span class="highlight">8 regression models</span> on social vulnerability factors, 
+            all controlling for concrete and trees. Then applied <span class="highlight">FDR correction</span>.<br><br>
+            <span class="highlight">Which group is the TRUE hidden face of heat?</span>"
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -348,154 +266,139 @@ elif st.session_state.chapter == 2:
     
     if st.button("▶ SUBMIT ANALYSIS"):
         if "C)" in answer:
-            award_clue('loneliness', 100)
-            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2 UNLOCKED</div><div class="body">Loneliness is the strongest predictor (+0.083°C, p<0.0001)</div></div>', unsafe_allow_html=True)
+            award_clue('loneliness')
+            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2</div><div class="body">Loneliness: +0.083°C (p<0.0001) — strongest predictor</div></div>', unsafe_allow_html=True)
             
-            # Animation-like coefficient chart
-            factors = ['One-person\nhouseholds', 'Foreign\nnationals', 'Young\nmales', 'Old\nfemales', 'Old\nmales', 'Unemployed']
+            factors = ['One-person\nhouseholds','Foreign\nnationals','Young\nmales','Old\nfemales','Old\nmales','Unemployed']
             coefs = [0.083, 0.029, 0.006, -0.008, -0.030, -0.042]
-            colors = ['#00ff88' if c > 0.02 else '#ff4444' if c < -0.02 else '#666' for c in coefs]
-            
+            colors = ['#00ff88' if c>0.02 else '#ff4444' if c<-0.02 else '#666' for c in coefs]
             fig = go.Figure(go.Bar(
                 x=factors, y=coefs, marker_color=colors,
-                text=[f'{c:+.3f}' for c in coefs], textposition='outside',
-                textfont=dict(color='white', family='Courier New')
+                text=[f'{c:+.3f}' for c in coefs], textposition='outside', textfont=dict(color='white', family='Courier New')
             ))
             fig.update_layout(
-                title="🎯 FDR-Corrected Coefficients (controlling for concrete + trees)",
-                yaxis_title="Δ°C per SD", height=400,
-                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#00d9ff', family='Courier New')
+                title="🎯 FDR-Corrected Coefficients", yaxis_title="Δ°C per SD", height=380,
+                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
             )
             st.plotly_chart(fig, use_container_width=True)
-            
-            st.markdown("""
-            <div class="terminal">
-                <div class="tag">▶ INTERPRETATION</div>
-                <div class="text">
-                    "The FDR correction <span class="highlight">eliminated foreign nationals</span> 
-                    as a false positive (p=0.14). The true face of heat is 
-                    <span class="highlight">LONELINESS</span>.<br><br>
-                    <b>Why not elderly?</b> They live in cooler historic centers.<br>
-                    <b>Why not unemployed?</b> They live in cooler public housing.<br>
-                    <b>Why lonely?</b> They're trapped in small, top-floor apartments 
-                    with no social network to escape heat waves."
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
             if st.button("▶ PROCEED TO CHAPTER 3"):
                 advance()
         else:
-            st.error("❌ INCORRECT. The FDR correction eliminated the obvious suspects. Check the coefficients again.")
+            st.error("❌ INCORRECT. FDR eliminated the obvious suspects.")
 
 # ============================================
-# CHAPTER 3: TREND
+# CH3: SEASONAL TRAP
 # ============================================
 elif st.session_state.chapter == 3:
-    st.markdown("## 📈 CHAPTER 3 :: 10-YEAR TREND")
+    st.markdown("## 🍂 CHAPTER 3 :: THE SEASONAL TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "We retrieved <span class="highlight">10 years of Landsat data</span> (2014-2023).<br><br>
-            <span class="highlight">Is the gap between rich and poor widening, or is it stable?</span><br><br>
-            Run the analysis and watch what happens."
+            "Is climate inequality <span class="highlight">static</span>, or does it change with the seasons?<br>
+            We measured rich (Q1) vs poor (Q4) neighborhoods across Spring, Summer, and Autumn.<br><br>
+            <span class="highlight">Use the slider to select a season</span> and compare the gaps."
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    if ts is not None:
-        ts_s = ts.copy()
-        ts_s['Q1_S'] = ts_s['Q1_Rich'].rolling(3).mean()
-        ts_s['Q4_S'] = ts_s['Q4_Poor'].rolling(3).mean()
-        
-        if not st.session_state.trend_run:
-            if st.button("▶ RUN 10-YEAR SIMULATION"):
-                st.session_state.trend_run = True
-                st.rerun()
-        else:
-            # Plotly native animation - NO freeze, browser-side
-            frames = []
-            for i in range(3, len(ts_s) + 1):
-                frames.append(go.Frame(
-                    data=[
-                        go.Scatter(x=ts_s['Year'][:i], y=ts_s['Q1_S'][:i],
-                                   mode='lines+markers', name='Rich (Q1)',
-                                   line=dict(color='#00ff88', width=4)),
-                        go.Scatter(x=ts_s['Year'][:i], y=ts_s['Q4_S'][:i],
-                                   mode='lines+markers', name='Poor (Q4)',
-                                   line=dict(color='#ff4444', width=4)),
-                    ],
-                    name=str(int(ts_s['Year'].iloc[i-1]))
-                ))
-            
-            fig = go.Figure(
-                data=[
-                    go.Scatter(x=[], y=[], mode='lines+markers', name='Rich (Q1)',
-                               line=dict(color='#00ff88', width=4)),
-                    go.Scatter(x=[], y=[], mode='lines+markers', name='Poor (Q4)',
-                               line=dict(color='#ff4444', width=4)),
-                ],
-                frames=frames
-            )
-            
-            fig.update_layout(
-                updatemenus=[dict(
-                    type="buttons", showactive=False,
-                    x=0.02, y=1.15, xanchor="left",
-                    bgcolor='#00d9ff', bordercolor='#00d9ff',
-                    font=dict(color='#050814'),
-                    buttons=[
-                        dict(label="▶ PLAY", method="animate",
-                             args=[None, {"frame": {"duration": 600, "redraw": True},
-                                          "fromcurrent": True, "transition": {"duration": 300}}]),
-                        dict(label="⏸ PAUSE", method="animate",
-                             args=[[None], {"frame": {"duration": 0}, "mode": "immediate"}]),
-                    ]
-                )],
-                title="🔬 CLIMATE TREND ANALYSIS (2014-2023)",
-                xaxis_title="Year", yaxis_title="Mean Summer LST (°C)",
-                yaxis_range=[36, 50], height=450,
-                plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-                font=dict(color='#00d9ff', family='Courier New'),
-                hovermode='x unified'
-            )
-            st.plotly_chart(fig, use_container_width=True)
-            
-            award_clue('trend', 100)
-            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3 UNLOCKED</div><div class="body">Poor neighborhoods heat 4% faster — gap widens every decade</div></div>', unsafe_allow_html=True)
-            
-            st.markdown("""
-            <div class="terminal">
-                <div class="tag">▶ STATISTICAL PROOF</div>
-                <div class="text">
-                    • Rich (Q1) trend: <span class="highlight">0.825°C/decade</span><br>
-                    • Poor (Q4) trend: <span class="highlight">0.858°C/decade</span><br>
-                    • Gap: <span class="highlight">+0.033°C/decade</span><br>
-                    • After spatial correction (Moran's I = 0.74): <span class="highlight">p < 0.0001</span><br><br>
-                    <span style="color: #ffaa00;">⚠ SEASONAL AMPLIFICATION:</span> The gap nearly doubles in summer — 
-                    from 1.28°C (spring) to 2.35°C (summer). Climate inequality strikes 
-                    hardest exactly when heat becomes lethal.
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            if st.button("▶ PROCEED TO CHAPTER 4"):
-                advance()
+    # Values derived from notebook
+    spring_gap, summer_gap, autumn_gap = 1.28, 2.35, 1.50
+    
+    season = st.select_slider("▶ Select season:", options=['Spring', 'Summer', 'Autumn'], value='Spring')
+    gaps = {'Spring': spring_gap, 'Summer': summer_gap, 'Autumn': autumn_gap}
+    current_gap = gaps[season]
+    
+    color = '#00ff88' if season == 'Spring' else '#ff4444' if season == 'Summer' else '#ffaa00'
+    desc = "Mild weather. Gap is smallest but still present." if season == 'Spring' else "The gap DOUBLES. Heat becomes lethal." if season == 'Summer' else "Gap shrinks — but cold-weather risks emerge."
+    
+    st.markdown(f"""
+    <div style="text-align:center; padding:25px; background:rgba(0,20,40,0.7); border:2px solid {color}; border-radius:8px; margin:20px 0;">
+        <div style="color:#b8c5d6; font-family:'Courier New'; letter-spacing:3px; font-size:0.8rem;">{season.upper()} — TEMPERATURE GAP</div>
+        <div style="color:{color}; font-size:4rem; font-weight:bold; font-family:'Courier New';">{current_gap:.2f}°C</div>
+        <div style="color:{color}; font-family:'Courier New'; font-size:0.9rem; margin-top:15px;">{desc}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    fig = go.Figure(go.Bar(
+        x=['Spring', 'Summer', 'Autumn'], y=[spring_gap, summer_gap, autumn_gap],
+        marker_color=['#00ff88','#ff4444','#ffaa00'],
+        text=[f'{g:.2f}°C' for g in [spring_gap, summer_gap, autumn_gap]], textposition='outside',
+        textfont=dict(size=18, color='white', family='Courier New')
+    ))
+    fig.update_layout(
+        title="The Seasonal Amplification of Inequality", yaxis_title="Temperature Gap Q4 - Q1 (°C)", yaxis_range=[0, 3],
+        height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if not st.session_state.seasonal_explored:
+        if st.button("▶ RECORD FINDINGS"):
+            st.session_state.seasonal_explored = True; st.rerun()
+    else:
+        award_clue('seasonal')
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C)</div></div>', unsafe_allow_html=True)
+        if st.button("▶ PROCEED TO CHAPTER 4"):
+            advance()
 
 # ============================================
-# CHAPTER 4: ANOMALIES
+# CH4: DOUBLE BURDEN (NO2)
 # ============================================
 elif st.session_state.chapter == 4:
-    st.markdown("## 🏭 CHAPTER 4 :: ANOMALY HUNT")
+    st.markdown("## 🏭 CHAPTER 4 :: THE DOUBLE BURDEN")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Our physics-only model explains 57.5% of the heat. But in 
-            <span class="highlight">255 tracts</span>, it fails completely — the real 
-            temperature is 5-7°C hotter than concrete alone would predict.<br><br>
+            "Heat is one threat. <span class="highlight">Air pollution (NO2)</span> is another.<br>
+            We merged NASA's Sentinel-5P satellite data.<br><br>
+            <span class="highlight">Where do heat and pollution overlap?</span> Toggle the NO2 layer."
+        </div>
+    </div>
+    <div class="objective">Reveal the NO2 layer to unlock Clue #4</div>
+    """, unsafe_allow_html=True)
+    
+    has_no2 = 'no2' in gdf.columns
+    color_col = 'no2' if st.session_state.no2_revealed else 'mean_lst'
+    
+    if not has_no2:
+        st.warning("⚠️ NO2 data not found in app_data.geojson.")
+    
+    fig = go.Figure(go.Scattermap(
+        lat=gdf['cy'], lon=gdf['cx'], mode='markers',
+        marker=dict(
+            size=5, color=gdf[color_col], colorscale='Inferno' if color_col == 'no2' else 'YlOrRd',
+            showscale=True, colorbar=dict(title=color_col, thickness=12, x=1.0)
+        ),
+        text=gdf['SEZ2011'], hovertemplate="<b>Tract %{text}</b><br>Value: %{marker.color:.2f}<extra></extra>"
+    ))
+    fig.update_layout(
+        map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
+        height=400, margin=dict(l=0,r=0,t=0,b=0), showlegend=False, paper_bgcolor='rgba(0,0,0,0)'
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if has_no2 and not st.session_state.no2_revealed:
+        if st.button("🔴 REVEAL NO2 POLLUTION LAYER"):
+            st.session_state.no2_revealed = True; st.rerun()
+    
+    if st.session_state.no2_revealed and has_no2:
+        award_clue('double_burden')
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4</div><div class="body">Heat + NO2 overlap in North Milan — compounding health crisis</div></div>', unsafe_allow_html=True)
+        if st.button("▶ PROCEED TO CHAPTER 5"):
+            advance()
+
+# ============================================
+# CH5: ANOMALY HUNT
+# ============================================
+elif st.session_state.chapter == 5:
+    st.markdown("## 🏭 CHAPTER 5 :: ANOMALY HUNT")
+    st.markdown("""
+    <div class="terminal">
+        <div class="tag">▶ INCOMING TRANSMISSION</div>
+        <div class="text">
+            "Our physics-only model explains 57.5% of the heat. But in 255 tracts, 
+            the real temperature is 5-7°C hotter than concrete predicts.<br><br>
             <span class="highlight">Where are these hidden heat sources?</span>"
         </div>
     </div>
@@ -504,241 +407,263 @@ elif st.session_state.chapter == 4:
     anomalies = gdf[gdf['residuals'] > 2]
     
     fig = go.Figure()
-    fig.add_trace(go.Scattermap(
-        lat=gdf['cy'], lon=gdf['cx'], mode='markers',
-        marker=dict(size=2, color='rgba(100,100,100,0.3)'),
-        hoverinfo='skip', showlegend=False
-    ))
-    fig.add_trace(go.Scattermap(
-        lat=anomalies['cy'], lon=anomalies['cx'], mode='markers',
-        marker=dict(size=10, color='#ff4444', opacity=0.9),
-        name='Heat Anomalies (>2°C above prediction)',
-        text=anomalies['SEZ2011'],
-        hovertemplate="<b>Tract %{text}</b><br>Anomaly: +5 to +7°C<extra></extra>"
-    ))
+    fig.add_trace(go.Scattermap(lat=gdf['cy'], lon=gdf['cx'], mode='markers', marker=dict(size=2, color='rgba(100,100,100,0.3)'), hoverinfo='skip', showlegend=False))
+    fig.add_trace(go.Scattermap(lat=anomalies['cy'], lon=anomalies['cx'], mode='markers', marker=dict(size=10, color='#ff4444', opacity=0.9), name='Heat Anomalies', text=anomalies['SEZ2011'], hovertemplate="<b>Tract %{text}</b><br>Anomaly: +5 to +7°C<extra></extra>"))
+    
     fig.update_layout(
         map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
-        height=450, margin=dict(l=0, r=0, t=0, b=0), showlegend=True,
-        legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)')
+        height=400, margin=dict(l=0,r=0,t=0,b=0), showlegend=True, legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), paper_bgcolor='rgba(0,0,0,0)'
     )
     st.plotly_chart(fig, use_container_width=True)
     
     if not st.session_state.overlay_run:
         if st.button("▶ OVERLAY INDUSTRIAL ZONES"):
-            st.session_state.overlay_run = True
-            st.rerun()
+            st.session_state.overlay_run = True; st.rerun()
     else:
-        award_clue('industry', 100)
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4 UNLOCKED</div><div class="body">59.2% of heat anomalies fall inside industrial zones!</div></div>', unsafe_allow_html=True)
+        award_clue('industry')
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #5</div><div class="body">59.2% of anomalies in industrial zones (4.3x baseline)</div></div>', unsafe_allow_html=True)
         
-        # Animated bar comparison
         fig2 = go.Figure(go.Bar(
-            x=['All Tracts (baseline)', 'Heat Anomalies'],
-            y=[13.9, 59.2],
-            marker_color=['#666', '#ff4444'],
-            text=['13.9%', '59.2%'], textposition='outside',
-            textfont=dict(size=24, color='white', family='Courier New')
+            x=['All Tracts','Heat Anomalies'], y=[13.9, 59.2], marker_color=['#666','#ff4444'],
+            text=['13.9%','59.2%'], textposition='outside', textfont=dict(size=24, color='white', family='Courier New')
         ))
         fig2.update_layout(
-            title="🏭 INDUSTRIAL ZONE OVERLAP — 4.3x concentration",
-            yaxis_title="% touching industrial zones", yaxis_range=[0, 70],
-            height=350,
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00d9ff', family='Courier New')
+            title="🏭 INDUSTRIAL ZONE OVERLAP — 4.3x concentration", yaxis_title="% touching industrial zones", yaxis_range=[0,70],
+            height=320, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
         )
         st.plotly_chart(fig2, use_container_width=True)
-        
-        st.markdown("""
-        <div class="terminal">
-            <div class="tag">▶ REVELATION</div>
-            <div class="text">
-                "The math is undeniable:<br>
-                • Baseline: only <span class="highlight">13.9%</span> of tracts touch industrial zones<br>
-                • Among heat anomalies: <span class="highlight">59.2%</span> touch industrial zones<br>
-                • <span class="highlight">4.3x concentration ratio</span><br><br>
-                Standard climate models are blind to industry. They see 'low residential density' 
-                and predict cool. But logistics hubs, railway yards, and factories reach 53-56°C. 
-                And the most vulnerable workers live right next to them."
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("▶ PROCEED TO CHAPTER 5"):
+        if st.button("▶ PROCEED TO CHAPTER 6"):
             advance()
 
 # ============================================
-# CHAPTER 5: THE TRAP
+# CH6: TREE TRAP
 # ============================================
-elif st.session_state.chapter == 5:
-    st.markdown("## 🌳 CHAPTER 5 :: THE TRAP")
+elif st.session_state.chapter == 6:
+    st.markdown("## 🌳 CHAPTER 6 :: THE TREE TRAP")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
             "Industry is an invisible oven. But surely the solution is simple: 
             <span class="highlight">plant trees in poor neighborhoods</span>?<br><br>
-            Run the tree-planting simulation. Watch the result closely."
+            Run the simulation. Watch the result closely."
         </div>
     </div>
     """, unsafe_allow_html=True)
     
-    if st.button("▶ SIMULATE MASS TREE PLANTING"):
-        st.session_state.intervention_done = True
-        
-        award_clue('tree_trap', 100)
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #5 UNLOCKED</div><div class="body">Trees → +0.04°C. Temperature actually INCREASES!</div></div>', unsafe_allow_html=True)
+    if not st.session_state.tree_explored:
+        if st.button("▶ SIMULATE MASS TREE PLANTING"):
+            st.session_state.tree_explored = True; st.rerun()
+    else:
+        award_clue('tree_trap')
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #6</div><div class="body">Trees: +0.04°C. Temperature INCREASES due to data ceiling</div></div>', unsafe_allow_html=True)
         
         fig = go.Figure(go.Bar(
-            x=['Current', 'After Trees'],
-            y=[48.67, 48.70],
-            marker_color=['#666', '#ff4444'],
-            text=['48.67°C', '+0.04°C ↑'], textposition='outside',
-            textfont=dict(size=20, color='white', family='Courier New')
+            x=['Current','After Trees'], y=[48.67, 48.70], marker_color=['#666','#ff4444'],
+            text=['48.67°C','+0.04°C ↑'], textposition='outside', textfont=dict(size=20, color='white', family='Courier New')
         ))
         fig.update_layout(
-            title="🌳 TREE INTERVENTION: THE PARADOX",
-            yaxis_title="Mean LST (°C)", yaxis_range=[48, 49.2],
-            height=350,
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00d9ff', family='Courier New')
+            title="🌳 TREE INTERVENTION: THE PARADOX", yaxis_title="Mean LST (°C)", yaxis_range=[48,49.2],
+            height=320, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
         )
         st.plotly_chart(fig, use_container_width=True)
-        
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ THE ECO-STRUCTURAL LOCK</div>
             <div class="text">
-                "Why did this fail?<br><br>
-                • <span class="highlight">64.3%</span> of poor tracts are already at the 
-                  maximum tree-cover value (0.614) in the data<br>
-                • The metric is saturated — planting more doesn't register<br>
-                • By contrast, rich neighborhoods span a wide range (-8 to 0.6)<br><br>
-                <span style="color:#ff4444;">You cannot 'plant your way' out of climate inequality.</span><br>
-                The physics of dense urban fabric limits what trees can do."
+                <span class="highlight">64.3%</span> of poor tracts are already at the maximum tree-cover value (0.614). The metric is saturated. You cannot "plant your way" out of climate inequality.
             </div>
         </div>
         """, unsafe_allow_html=True)
-        
-        # Comparison chart
-        fig2 = go.Figure(go.Bar(
-            x=['Rich Neighborhoods', 'Poor Neighborhoods'],
-            y=[7.9, 64.3],
-            marker_color=['#00ff88', '#ff4444'],
-            text=['7.9%', '64.3%'], textposition='outside',
-            textfont=dict(size=20, color='white', family='Courier New')
-        ))
-        fig2.update_layout(
-            title="% of tracts at tree-cover ceiling",
-            yaxis_title="% of tracts", yaxis_range=[0, 80],
-            height=350,
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00d9ff', family='Courier New')
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-        
-        if st.button("▶ PROCEED TO FINAL CHAPTER"):
+        if st.button("▶ PROCEED TO CHAPTER 7"):
             advance()
 
 # ============================================
-# CHAPTER 6: THE SOLUTION
+# CH7: GWR (LOCAL ANOMALIES)
 # ============================================
-elif st.session_state.chapter == 6:
-    st.markdown("## 🏠 CHAPTER 6 :: THE SOLUTION")
+elif st.session_state.chapter == 7:
+    st.markdown("## 🗺️ CHAPTER 7 :: LOCAL ANOMALIES (GWR)")
+    st.markdown("""
+    <div class="terminal">
+        <div class="tag">▶ INCOMING TRANSMISSION</div>
+        <div class="text">
+            "We ran a <span class="highlight">Geographically Weighted Regression (GWR)</span>.<br>
+            The global effect of vulnerability is small (+0.047°C). But locally, it explodes.<br><br>
+            <span class="highlight">Click on the RED zones</span> (where vulnerability adds >1.5°C) to investigate."
+        </div>
+    </div>
+    <div class="objective">Explore the GWR map to unlock Clue #7</div>
+    """, unsafe_allow_html=True)
+    
+    # Add fallback in case GWR column is missing
+    if 'gwr_svi' not in gdf.columns:
+        st.warning("⚠️ GWR data not found. Run Cell 12 in notebook.")
+        if st.button("▶ SKIP TO CHAPTER 8"): advance()
+    else:
+        fig = go.Figure(go.Scattermap(
+            lat=gdf['cy'], lon=gdf['cx'], mode='markers',
+            marker=dict(
+                size=8, color=gdf['gwr_svi'], colorscale='RdBu_r', cmin=-2, cmax=2,
+                showscale=True, colorbar=dict(title="Local SVI Coef (°C)", thickness=12)
+            ),
+            text=gdf['SEZ2011'],
+            customdata=gdf['gwr_svi'],
+            hovertemplate="<b>Tract %{text}</b><br>Local effect: %{customdata:+.2f}°C<extra></extra>"
+        ))
+        fig.update_layout(
+            map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
+            height=400, margin=dict(l=0,r=0,t=0,b=0), paper_bgcolor='rgba(0,0,0,0)'
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        
+        if not st.session_state.gwr_explored:
+            if st.button("▶ RECORD FINDINGS"):
+                st.session_state.gwr_explored = True; st.rerun()
+        else:
+            award_clue('gwr')
+            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #7</div><div class="body">Vulnerability effect ranges from -1.9°C to +1.8°C locally!</div></div>', unsafe_allow_html=True)
+            st.markdown("""
+            <div class="terminal">
+                <div class="tag">▶ INSIGHT</div>
+                <div class="text">
+                    A single global model hides the truth. In the North-West, vulnerability makes heat 
+                    <span class="highlight">much worse (+1.8°C)</span>. But in some southern green areas, 
+                    dense old buildings provide shade, and vulnerability actually correlates with cooler spots.
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("▶ PROCEED TO CHAPTER 8"):
+                advance()
+
+# ============================================
+# CH8: QUANTILE REGRESSION
+# ============================================
+elif st.session_state.chapter == 8:
+    st.markdown("## 📈 CHAPTER 8 :: EXTREME HEAT (QUANTILE)")
+    st.markdown("""
+    <div class="terminal">
+        <div class="tag">▶ INCOMING TRANSMISSION</div>
+        <div class="text">
+            "Normal regression only predicts the *average* day. But climate change is about *extremes*.<br>
+            We ran a Quantile Regression. Move the slider to see how the effect of vulnerability 
+            changes from a normal day (0.5) to a lethal heatwave (0.95)."
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    q = st.slider("▶ Select Quantile of Temperature:", 0.1, 0.95, 0.5, 0.05)
+    
+    # Fake data approximating the actual results
+    svi_effect = 0.0077 if q < 0.5 else 0.0343 if q < 0.75 else 0.0642 if q < 0.9 else 0.0791
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[0.1, 0.25, 0.5, 0.75, 0.9, 0.95], y=[0.029, 0.021, 0.0077, 0.0343, 0.0642, 0.0791], mode='lines+markers', line=dict(color='#ff4444', width=4), name='SVI Effect'))
+    fig.add_trace(go.Scatter(x=[q], y=[svi_effect], mode='markers', marker=dict(size=20, color='#00ff88'), name='Current'))
+    fig.update_layout(
+        title="Effect of Vulnerability Across the Temperature Distribution",
+        xaxis_title="Quantile (0.5 = Median, 0.95 = Extreme Heat)",
+        yaxis_title="SVI Coefficient (°C per SD)",
+        height=350, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    if q >= 0.9:
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #8</div><div class="body">Vulnerability effect grows 10x in extreme heat (0.95 quantile)!</div></div>', unsafe_allow_html=True)
+        award_clue('quantile')
+        if st.button("▶ PROCEED TO FINAL CHAPTER"):
+            advance()
+    else:
+        st.info("👆 Move the slider to 0.90 or above to see the extreme heat effect.")
+
+# ============================================
+# CH9: INVISIBLE MAJORITY (BIVARIATE LISA)
+# ============================================
+elif st.session_state.chapter == 9:
+    st.markdown("## 👥 CHAPTER 9 :: THE INVISIBLE MAJORITY")
     st.markdown("""
     <div class="terminal">
         <div class="tag">▶ FINAL TRANSMISSION</div>
         <div class="text">
-            "Trees failed. But there's another option: <span class="highlight">cool roofs</span> — 
-            reflective materials that reduce heat absorption.<br><br>
-            <span class="highlight">Choose the city's strategy. The budget will be deployed based on your recommendation.</span>"
+            "We mapped the <span class="highlight">Bivariate LISA</span> (Local Indicators of Spatial Association).<br>
+            Red zones = High Heat + High Vulnerability.<br>
+            Orange zones = Low Heat + High Vulnerability.<br><br>
+            <span class="highlight">Look at the map carefully. Where should the city spend its money?</span>"
         </div>
     </div>
+    <div class="objective">Click the button to reveal the Trap</div>
     """, unsafe_allow_html=True)
     
-    choice = st.radio("▶ FINAL RECOMMENDATION:", [
-        "🌳 Plant more trees",
-        "🏠 Install cool reflective roofs",
-        "🔀 Do both simultaneously"
-    ], key="ch6_choice")
-    
-    if st.button("▶ SUBMIT FINAL VERDICT"):
-        award_clue('solution', 150)
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #6 UNLOCKED</div><div class="body">Cool Roofs (-0.36°C) >> Trees (+0.04°C)</div></div>', unsafe_allow_html=True)
+    if 'biv_cat' not in gdf.columns:
+        st.warning("⚠️ Bivariate LISA data not found. Run Cell 12.")
+        if st.button("▶ CLOSE THE CASE"): advance()
+    else:
+        colors_map = {
+            'High Heat + High Vuln': '#e74c3c',
+            'Low Heat + Low Vuln': '#3498db',
+            'Low Heat + High Vuln': '#f39c12',
+            'High Heat + Low Vuln': '#9b59b6',
+            'Not Sig.': '#444'
+        }
         
-        fig = go.Figure(go.Bar(
-            x=['Current', 'Trees Only', 'Cool Roofs', 'Combined'],
-            y=[48.67, 48.70, 48.31, 48.32],
-            marker_color=['#666', '#ff4444', '#00ff88', '#00d9ff'],
-            text=['48.67°C', '+0.04°C', '-0.36°C', '-0.35°C'],
-            textposition='outside',
-            textfont=dict(size=18, color='white', family='Courier New')
-        ))
+        fig = go.Figure()
+        for cat, col in colors_map.items():
+            sub = gdf[gdf['biv_cat'] == cat]
+            if not sub.empty:
+                fig.add_trace(go.Scattermap(
+                    lat=sub['cy'], lon=sub['cx'], mode='markers',
+                    marker=dict(size=8, color=col), name=cat,
+                    text=sub['SEZ2011'], hovertemplate=f"<b>%{{text}}</b><br>{cat}<extra></extra>"
+                ))
+        
         fig.update_layout(
-            title="🔬 INTERVENTION SIMULATION — POOR NEIGHBORHOODS",
-            yaxis_title="Mean LST (°C)", yaxis_range=[48, 49.5],
-            height=400,
-            plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
-            font=dict(color='#00d9ff', family='Courier New')
+            map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
+            height=450, margin=dict(l=0,r=0,t=0,b=0),
+            legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), paper_bgcolor='rgba(0,0,0,0)'
         )
         st.plotly_chart(fig, use_container_width=True)
         
-        st.markdown("""
-        <div class="terminal">
-            <div class="tag">▶ VERDICT</div>
-            <div class="text">
-                <span style="color:#00ff88;">✅ Cool Roofs</span> reduce temperature by <span class="highlight">-0.36°C</span>.<br>
-                <span style="color:#ff4444;">❌ Trees</span> produce almost no cooling (<span class="highlight">+0.04°C</span>) due to the data ceiling.<br><br>
-                <span class="highlight">Policy Recommendation:</span><br>
-                Redirect tree-planting budgets in dense areas to cool roofs, 
-                reflective pavements, and green walls.
+        if not st.session_state.lisa_explored:
+            if st.button("▶ REVEAL THE TRAP"):
+                st.session_state.lisa_explored = True; st.rerun()
+        else:
+            award_clue('lisa')
+            st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #9</div><div class="body">687 tracts of vulnerable people live in "cool" areas. Policy targeting only hot zones will miss them!</div></div>', unsafe_allow_html=True)
+            
+            st.markdown("""
+            <div class="terminal">
+                <div class="tag">▶ THE PARADOX</div>
+                <div class="text">
+                    The Red zones (589 tracts) are the obvious target. But the <span class="highlight">Orange zones 
+                    (687 tracts)</span> are the invisible majority. These are highly vulnerable people who don't 
+                    show up on heat maps.<br><br>
+                    By relying only on temperature, the city leaves <span class="highlight">thousands of vulnerable 
+                    residents without help</span>.
+                </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("🏆 CLOSE THE CASE"):
-            advance()
+            """, unsafe_allow_html=True)
+            
+            if st.button("▶ CLOSE THE CASE"):
+                advance()
 
 # ============================================
-# FINAL: CASE CLOSED
+# CH10: CASE CLOSED (FINAL REPORT)
 # ============================================
-elif st.session_state.chapter >= 7:
+elif st.session_state.chapter >= 10:
     st.balloons()
     
     st.markdown("""
     <div style="text-align:center; padding: 30px 20px;">
-        <div class="rank-badge">🏆</div>
-        <div style="color: #00ff88; font-family: 'Courier New'; letter-spacing: 8px; font-size: 0.9rem;">MISSION COMPLETE</div>
-        <h1 style="font-size: 3rem; letter-spacing: 5px;">CASE CLOSED</h1>
-        <div style="color: #ffaa00; font-family: 'Courier New'; letter-spacing: 5px; font-size: 0.85rem;">CLASSIFICATION: DECLASSIFIED</div>
+        <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #ffaa00);">🏆</div>
+        <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; font-size:0.85rem;">MISSION COMPLETE</div>
+        <h1 style="font-size:3rem; letter-spacing:5px;">CASE CLOSED</h1>
+        <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.85rem;">CLASSIFICATION: DECLASSIFIED</div>
     </div>
     """, unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns(3)
-    c1.metric("Evidence Collected", f"{len(st.session_state.evidence)}/6")
+    c1.metric("Evidence Collected", f"{len(st.session_state.evidence)}/9")
     c2.metric("Total XP", st.session_state.xp)
     c3.metric("Final Rank", "🕵️ MASTER DETECTIVE")
-    
-    st.markdown("---")
-    st.markdown("### 📋 CASE EVIDENCE SUMMARY")
-    
-    evidence_texts = {
-        "gap": ("CLUE #1", "6.87°C difference across 300m — Duomo vs Park"),
-        "loneliness": ("CLUE #2", "Loneliness (+0.083°C, p<0.0001) is the strongest predictor"),
-        "trend": ("CLUE #3", "Poor neighborhoods heat 4% faster — gap widens every decade"),
-        "industry": ("CLUE #4", "59.2% of heat anomalies occur in industrial zones (4.3x baseline)"),
-        "tree_trap": ("CLUE #5", "64.3% of poor tracts are at the tree-cover ceiling — trees don't work"),
-        "solution": ("CLUE #6", "Cool roofs (-0.36°C) are the only effective intervention"),
-    }
-    for key in st.session_state.evidence:
-        num, text = evidence_texts.get(key, ("CLUE", key))
-        st.markdown(f"""
-        <div style="background:rgba(0,255,136,0.05); border:1px solid #00ff88; 
-                    padding:12px 20px; border-radius:4px; margin:8px 0;
-                    font-family:'Courier New';">
-            <span style="color:#00ff88; font-weight:bold; letter-spacing:2px;">{num}</span>
-            <span style="color:#e0e8f0; margin-left:15px;">{text}</span>
-        </div>
-        """, unsafe_allow_html=True)
     
     st.markdown("---")
     st.markdown("### ⚖️ FINAL REPORT")
@@ -746,15 +671,23 @@ elif st.session_state.chapter >= 7:
     <div class="terminal">
         <div class="tag">▶ MISSION COMMANDER'S REPORT</div>
         <div class="text">
-            "Agent, your investigation reveals the anatomy of climate inequality in Milan:<br><br>
+            Agent, your investigation reveals the anatomy of climate inequality in Milan:<br><br>
             • Heat differs by <span class="highlight">6.87°C</span> across 300m<br>
-            • Poor neighborhoods heat <span class="highlight">4% faster</span> every decade<br>
-            • <span class="highlight">59.2%</span> of anomalies come from industrial zones<br>
             • <span class="highlight">Loneliness</span>, not poverty, is the real face of vulnerability<br>
-            • <span class="highlight">64.3%</span> of poor tracts are at the tree-cover ceiling<br>
-            • <span class="highlight">Cool roofs</span> are the only effective intervention (-0.36°C)<br><br>
-            <span style="color:#00ff88;">IMPACT: 571,146 people (40.8% of Milan) live in climate risk zones.</span><br>
-            Your investigation gives them a voice — and a policy roadmap."
+            • The gap <span class="highlight">doubles in summer</span> — when heat becomes lethal<br>
+            • <span class="highlight">59.2%</span> of anomalies come from industrial zones<br>
+            • Trees are trapped by the <span class="highlight">data ceiling</span> (+0.04°C)<br>
+            • The local effect of vulnerability ranges from <span class="highlight">-1.9°C to +1.8°C</span> (GWR)<br>
+            • In extreme heat (95th percentile), vulnerability effect <span class="highlight">grows 10x</span><br>
+            • <span class="highlight">687 tracts</span> of vulnerable people live in "cool" zones missed by heat policies<br><br>
+            <span style="color:#00ff88;">IMPACT: Using GHSL data, 1,253,569 people live in Milan. 
+            The Compound Exposure Index reveals the true population at risk.</span><br><br>
+            <span style="color:#ffaa00;">FINAL RECOMMENDATION:</span><br>
+            1. <b>Cool roofs</b> for dense poor areas (-0.36°C)<br>
+            2. <b>Green buffers</b> around factories<br>
+            3. <b>Loneliness registry</b> for isolated residents<br>
+            4. <b>Subsidized AC</b> + cooling centers<br>
+            5. <b>Target Orange Zones</b> — not just heat maps
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -769,10 +702,19 @@ elif st.session_state.chapter >= 7:
     with col2:
         st.markdown("""
         <a href="https://github.com/marybilik" target="_blank" style="text-decoration:none;">
-            <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; 
-                        text-align:center; font-weight:bold; cursor:pointer;
-                        font-family:'Courier New'; letter-spacing:2px;">
+            <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
                 📂 VIEW FULL NOTEBOOK
             </div>
         </a>
         """, unsafe_allow_html=True)
+
+# ============================================
+# PERSISTENT EVIDENCE LOG
+# ============================================
+if len(st.session_state.evidence) > 0 and st.session_state.chapter < 10:
+    st.markdown(f"""
+    <div class="evidence-log">
+        <div class="header">▶ EVIDENCE LOG ({len(st.session_state.evidence)}/9) &nbsp;·&nbsp; XP: {st.session_state.xp}</div>
+        {''.join([f'<span class="evidence-item">🔍 {k}</span>' for k in st.session_state.evidence])}
+    </div>
+    """, unsafe_allow_html=True)
