@@ -10,7 +10,7 @@ import numpy as np
 # ============================================
 # CONFIG & NASA CSS
 # ============================================
-st.set_page_config(page_title="NASA // MILAN HEAT CASE", page_icon="🛰️", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="NASA // MILAN HEAT CASE", page_icon="🕵️", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
 <style>
@@ -88,7 +88,6 @@ def load_data():
     gdf = gpd.read_file("app_data.geojson")
     gdf['SEZ2011'] = gdf['SEZ2011'].astype(str)
     
-    # Auto-merge GWR if missing
     if os.path.exists("gwr_coefs.csv") and 'gwr_svi' not in gdf.columns:
         gwr = pd.read_csv("gwr_coefs.csv")
         gwr['SEZ2011'] = gwr['SEZ2011'].astype(str)
@@ -108,17 +107,18 @@ except Exception as e:
     st.stop()
 
 # ============================================
-# STATE MANAGEMENT (FIXED KeyError)
+# STATE MANAGEMENT
 # ============================================
 defaults = {
     'chapter': 0, 
     'evidence': [],
-    'clicked_duomo': False, 'clicked_park': False,
+    'clicked_duomo': False, 'clicked_park': False, 'clicks': 0,
     'trend_run': False, 'overlay_run': False,
     'no2_revealed': False, 'ch4_solved': False,
     'ch2_solved': False, 'ch3_solved': False, 
     'tree_explored': False, 'gwr_explored': False, 
-    'ch8_solved': False, 'lisa_explored': False
+    'ch8_solved': False, 'lisa_explored': False,
+    'easter_egg_found': False
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -156,7 +156,7 @@ if 0 < st.session_state.chapter <= 10:
 if st.session_state.chapter == 0:
     st.markdown("""
     <div style="text-align:center; padding: 40px 20px 20px 20px;">
-        <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🛰️</div>
+        <div style="font-size: 6rem; filter: drop-shadow(0 0 30px #00d9ff); margin-bottom: -10px;">🕵️</div>
         <div style="color:#00ff88; font-family:'Courier New'; letter-spacing:8px; margin-top:20px; font-size:0.85rem;">NASA EARTH OBSERVATION SYSTEM</div>
         <h1 style="font-size:3.5rem; letter-spacing:6px; margin:15px 0; color:#00d9ff; text-shadow:0 0 20px #00d9ff;">THE MILAN<br>HEAT CASE</h1>
         <div style="color:#ffaa00; font-family:'Courier New'; letter-spacing:5px; font-size:0.8rem;">CLASSIFICATION: SECRET // LEVEL 3</div>
@@ -170,12 +170,12 @@ if st.session_state.chapter == 0:
             '<div class="terminal" style="margin-top: 0;">'
             '<div class="tag">▶ MISSION BRIEFING</div>'
             '<div class="text">'
-            'Milan, Summer 2023. Surface temperatures hit <span class="highlight">56°C</span>. '
-            'But satellite data reveals a disturbing pattern: <span class="highlight">the heat is not distributed equally</span>.<br><br>'
-            '<b>Why Milan?</b> It is a Megalopolis where historic wealth (the cool, green center) abruptly borders industrial poverty '
-            '(the suffocating, concrete outskirts). It is the perfect petri dish to study '
-            '<span class="highlight">Climate Inequality</span> — where a person\'s zip code literally determines their body temperature.<br><br>'
-            'Your mission: uncover <span class="highlight">who</span> is dying from heat — and <span class="highlight">why</span>.'
+            'Agent, we have a crisis. Milan, Summer 2023. Surface temperatures hit <span class="highlight">56°C</span>. '
+            'But satellite data reveals something sinister: <span class="highlight">the heat is not distributed equally</span>.<br><br>'
+            '<b>Why Milan?</b> It is the perfect petri dish for <span class="highlight">Climate Inequality</span>. '
+            'A city where historic wealth (cool parks, green centers) sits right next to industrial poverty '
+            '(suffocating concrete). Here, a person\'s zip code determines their body temperature.<br><br>'
+            'Your mission is to uncover <span class="highlight">who</span> is dying — and <span class="highlight">why</span>.'
             '</div>'
             '</div>', 
             unsafe_allow_html=True
@@ -220,7 +220,7 @@ if st.session_state.chapter == 0:
             advance()
 
 # ============================================
-# CH1: CALIBRATION (Duomo vs Park)
+# CH1: CALIBRATION
 # ============================================
 elif st.session_state.chapter == 1:
     st.markdown("## 📍 CHAPTER 1 // CALIBRATION")
@@ -228,10 +228,10 @@ elif st.session_state.chapter == 1:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Agent, we calibrate your instruments first. Two locations, <span class="highlight">300m apart</span>:<br>
+            Agent, let's calibrate your instruments. Look at the map. Two locations, 300 meters apart.<br>
             🔴 <b>DUOMO</b> — dense historic center<br>
             🟢 <b>PARCO SEMPIONE</b> — the city's largest park<br><br>
-            <span class="highlight">Click on BOTH markers on the map</span> to measure their temperature."
+            Click on both markers on the map to scan their surface temperature.
         </div>
     </div>
     <div class="objective">Click Duomo + Park on the map to unlock Clue #1</div>
@@ -268,6 +268,12 @@ elif st.session_state.chapter == 1:
             if cd == 'park' and not st.session_state.clicked_park:
                 st.session_state.clicked_park = True; st.rerun()
     
+    # Easter Egg 1: Too many clicks
+    if 'clicks' in st.session_state and not (st.session_state.clicked_duomo and st.session_state.clicked_park):
+        st.session_state.clicks += 1
+        if st.session_state.clicks == 5:
+            st.info("🤖 **System Note:** The map is not going to bite you, Agent. Click the red and green dots.")
+
     c1, c2 = st.columns(2)
     c1.metric("🔴 Duomo", "✓ Measured" if st.session_state.clicked_duomo else "❌ Pending")
     c2.metric("🟢 Park", "✓ Measured" if st.session_state.clicked_park else "❌ Pending")
@@ -287,7 +293,7 @@ elif st.session_state.chapter == 1:
         )
         st.plotly_chart(fig2, use_container_width=True)
         
-        if st.button("▶ PROCEED TO CHAPTER 2"):
+        if st.button("▶ INVESTIGATE THE CAUSE"):
             advance()
 
 # ============================================
@@ -299,47 +305,72 @@ elif st.session_state.chapter == 2:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "A 7°C difference! So it's just about concrete and trees, right?<br><br>
-            We ran a decomposition of variance. Look at the R² values. <b>Physics explains 57.5% of the heat. SVI explains 18.8%.</b><br>
-            But when you add SVI on top of Physics, the R² barely moves (57.5% -> 57.6%)."
+            A 7°C gap! It seems obvious: the Duomo has concrete, the park has trees.<br><br>
+            Our model says Physics (concrete/trees) explains 57.5% of the heat. Social Vulnerability (SVI) explains 18.8%.
+            <b>What happens if we combine them?</b>
         </div>
     </div>
-    <div class="objective">Analyze the R² breakdown to unlock Clue #2</div>
     """, unsafe_allow_html=True)
     
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        x=['Physics Only', 'SVI Only', 'Physics + SVI'],
-        y=[57.5, 18.8, 57.6],
-        marker_color=['#00d9ff', '#ffaa00', '#00ff88'],
-        text=['57.5%', '18.8%', '57.6%'], textposition='outside',
+        x=['Physics Only', 'SVI Only'],
+        y=[57.5, 18.8],
+        marker_color=['#00d9ff', '#ffaa00'],
+        text=['57.5%', '18.8%'], textposition='outside',
         textfont=dict(size=18, color='white', family='Courier New')
     ))
     fig.update_layout(
         title="Variance Explained (R²)",
         yaxis_title="R² (%)", yaxis_range=[0, 80],
-        height=380, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        height=350, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
         font=dict(color='#00d9ff', family='Courier New')
     )
     st.plotly_chart(fig, use_container_width=True)
     
     if not st.session_state.ch3_solved:
-        if st.button("▶ INTERPRET DATA"):
-            st.session_state.ch3_solved = True
-            award_clue('illusion')
-            st.rerun()
-            
-    if st.session_state.ch3_solved:
-        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2</div><div class="body">Social vulnerability doesn\'t directly cause heat. It\'s fully mediated by the physical environment (historical paving).</div></div>', unsafe_allow_html=True)
+        guess = st.radio("▶ YOUR PREDICTION: If we add SVI to Physics, the R² will...", [
+            "A) Increase massively (jump to ~76%)",
+            "B) Barely move (stay around 57.6%)",
+            "C) Decrease because of multicollinearity"
+        ], index=None, key="predict_r2")
+        
+        if st.button("▶ TEST PREDICTION"):
+            if guess and "B)" in guess:
+                st.session_state.ch3_solved = True
+                award_clue('illusion')
+                st.rerun()
+            elif guess:
+                st.error("❌ **Incorrect.** Think: does a rich person's house heat up just because they have a higher income? No. Concrete does the heating.")
+    else:
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            x=['Physics Only', 'SVI Only', 'Physics + SVI'],
+            y=[57.5, 18.8, 57.6],
+            marker_color=['#00d9ff', '#ffaa00', '#00ff88'],
+            text=['57.5%', '18.8%', '57.6%'], textposition='outside',
+            textfont=dict(size=18, color='white', family='Courier New')
+        ))
+        fig2.update_layout(
+            title="Variance Explained (R²)", yaxis_title="R² (%)", yaxis_range=[0, 80],
+            height=350, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#00d9ff', family='Courier New')
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+        
+        st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #2</div><div class="body">Social vulnerability doesn\'t directly cause heat. It\'s fully mediated by the physical environment.</div></div>', unsafe_allow_html=True)
+        
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ DETECTIVE NOTE</div>
             <div class="text">
-                This means giving people money won't cool their neighborhoods. We must change the <b>physical infrastructure</b>. 
+                Giving people money won't cool their neighborhoods. The heat is baked into the <b>bricks</b>. 
+                But wait — if it's all about buildings, <i>which</i> specific group gets trapped in the hottest ones?
             </div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("▶ PROCEED TO CHAPTER 3"):
+        
+        if st.button("▶ FIND THE VULNERABLE GROUP"):
             advance()
 
 # ============================================
@@ -351,18 +382,18 @@ elif st.session_state.chapter == 3:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "If it's all physical, which specific human factor correlates with the heat?<br>
-            We ran 8 models and applied strict FDR correction to eliminate false positives."
+            If concrete is the killer, who is forced to live in the worst of it?<br>
+            We tested 8 social profiles. Most of our assumptions were dead wrong. Read the intel.
         </div>
     </div>
     <div class="terminal" style="border-left-color: #ffaa00;">
         <div class="tag" style="color: #ffaa00;">▶ RAW INTEL (FDR-CORRECTED)</div>
         <div class="text" style="font-size: 0.95rem;">
-            • <b>Elderly (65+):</b> Coef = -0.030 (They live in cool historic centers)<br>
-            • <b>Foreign nationals:</b> p-value = 0.14 (Eliminated as false positive)<br>
-            • <b>Unemployed:</b> Coef = -0.042 (Live in cool public housing)<br>
+            • <b>Elderly (65+):</b> Coef = -0.030 (They live in the cool historic center)<br>
+            • <b>Foreign nationals:</b> p-value = 0.14 (False positive)<br>
+            • <b>Unemployed:</b> Coef = -0.042 (Live in green public housing)<br>
             • <b>Young males:</b> p-value = 0.82 (Not significant)<br><br>
-            We need the factor that <b>survived the strict FDR test</b> with a <b>positive coefficient</b>.
+            We need the factor that <b>survived the strict FDR test</b> and has a <b>positive coefficient</b>.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -381,7 +412,7 @@ elif st.session_state.chapter == 3:
                 award_clue('loneliness')
                 st.rerun()
             else:
-                st.error("❌ INCORRECT. Check the p-values and coefficients in the RAW INTEL.")
+                st.error("❌ INCORRECT. Check the p-values and coefficients. The obvious answers are traps.")
     else:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #3</div><div class="body">Loneliness: +0.083°C (p<0.0001) — strongest predictor</div></div>', unsafe_allow_html=True)
         
@@ -397,7 +428,18 @@ elif st.session_state.chapter == 3:
             plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
         )
         st.plotly_chart(fig, use_container_width=True)
-        if st.button("▶ PROCEED TO CHAPTER 4"):
+        
+        st.markdown("""
+        <div class="terminal">
+            <div class="tag">▶ DETECTIVE NOTE</div>
+            <div class="text">
+                It's not immigrants. It's not the unemployed. It's <b>isolation</b>. Single people trapped in tiny, top-floor apartments 
+                with no one to check on them. But wait... is this a year-round problem?
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("▶ ANALYZE SEASONALITY"):
             advance()
 
 # ============================================
@@ -409,8 +451,8 @@ elif st.session_state.chapter == 4:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "We measured the gap between rich (Q1) and poor (Q4) neighborhoods across the year.<br>
-            <b>Task:</b> Analyze the seasonal dynamics. Find the moment when the climate gap becomes truly lethal."
+            We tracked the temperature gap across the year. <br>
+            <b>Task:</b> Drag the slider below to find the moment when the climate gap becomes truly lethal.
         </div>
     </div>
     <div class="objective">Find the most dangerous season to unlock Clue #4</div>
@@ -475,11 +517,22 @@ elif st.session_state.chapter == 4:
     
     if st.session_state.ch4_solved:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #4</div><div class="body">Summer gap (2.35°C) is nearly 2x spring gap (1.28°C). Heat becomes lethal.</div></div>', unsafe_allow_html=True)
-        if st.button("▶ PROCEED TO CHAPTER 5"):
+        
+        st.markdown("""
+        <div class="terminal">
+            <div class="tag">▶ DETECTIVE NOTE</div>
+            <div class="text">
+                Climate inequality is a summer time-bomb. It strikes exactly when the heat becomes lethal. 
+                But heat isn't the only thing choking these neighborhoods. Let's look at the air itself.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("▶ TRACE THE AIR POLLUTION"):
             advance()
 
 # ============================================
-# CH5: DOUBLE BURDEN (NO2) - UPDATED INTERACTIVITY
+# CH5: DOUBLE BURDEN (NO2)
 # ============================================
 elif st.session_state.chapter == 5:
     st.markdown("## 🏭 CHAPTER 5 // THE DOUBLE BURDEN")
@@ -487,9 +540,8 @@ elif st.session_state.chapter == 5:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Heat is one threat. <span class="highlight">Air pollution (NO2)</span> is another.<br>
-            We merged NASA's Sentinel-5P satellite data.<br><br>
-            <span class="highlight">Toggle between the two maps below.</span> Look closely at the North of Milan."
+            Heat is one threat. <span class="highlight">Air pollution (NO2)</span> is another. We merged NASA's Sentinel-5P satellite data.<br><br>
+            <span class="highlight">Toggle between the two layers below.</span> Look closely at the North of Milan.
         </div>
     </div>
     <div class="objective">Compare the two layers to unlock Clue #5</div>
@@ -503,7 +555,6 @@ elif st.session_state.chapter == 5:
         map_choice = st.radio("SELECT DATA LAYER:", ["🌡️ Heat (LST)", "💨 Pollution (NO2)"], horizontal=True)
         color_col = 'mean_lst' if "Heat" in map_choice else 'no2'
         
-        # Human-readable tooltips
         gdf['hover_text'] = gdf.apply(lambda r: f"🌡️ {r['mean_lst']:.1f}°C | 💨 NO2: {r['no2']:.3f}", axis=1)
         
         fig = go.Figure(go.Scattermap(
@@ -528,11 +579,22 @@ elif st.session_state.chapter == 5:
             
         if st.session_state.no2_revealed:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #5</div><div class="body">Heat + NO2 overlap in North Milan — compounding health crisis</div></div>', unsafe_allow_html=True)
-            if st.button("▶ PROCEED TO CHAPTER 6"):
+            
+            st.markdown("""
+            <div class="terminal">
+                <div class="tag">▶ DETECTIVE NOTE</div>
+                <div class="text">
+                    These residents are fighting two wars at once: lethal heat and respiratory risk. 
+                    Where does all this heat come from? Our physical model says concrete explains 57%. What about the rest?
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            if st.button("▶ HUNT THE ANOMALIES"):
                 advance()
 
 # ============================================
-# CH6: ANOMALY HUNT - UPDATED INTERACTIVITY (WOW EFFECT)
+# CH6: ANOMALY HUNT
 # ============================================
 elif st.session_state.chapter == 6:
     st.markdown("## 🏭 CHAPTER 6 // ANOMALY HUNT")
@@ -540,9 +602,8 @@ elif st.session_state.chapter == 6:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Our physics-only model explains 57.5% of the heat. But in 255 tracts, 
-            the real temperature is 5-7°C hotter than concrete predicts.<br><br>
-            <b>Task:</b> Check the box below to reveal industrial zones. Watch how the red anomalies align with them."
+            Our physics model explains 57.5% of the heat. But in 255 spots, the real temperature is 5-7°C hotter than concrete predicts.<br><br>
+            <b>Task:</b> Check the box below to reveal industrial zones. Watch how the red anomalies align with them.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -552,10 +613,8 @@ elif st.session_state.chapter == 6:
     show_industry = st.checkbox("🏭 SHOW INDUSTRIAL ZONES OVERLAY")
     
     fig = go.Figure()
-    # Base map (grey)
     fig.add_trace(go.Scattermap(lat=gdf['cy'], lon=gdf['cx'], mode='markers', marker=dict(size=2, color='rgba(100,100,100,0.2)'), hoverinfo='skip', showlegend=False))
     
-    # Anomalies (red)
     fig.add_trace(go.Scattermap(
         lat=anomalies['cy'], lon=anomalies['cx'], mode='markers', 
         marker=dict(size=8, color='#ff4444', opacity=0.9), 
@@ -564,9 +623,7 @@ elif st.session_state.chapter == 6:
         hovertemplate="<b>Anomaly</b><br>%{text}<extra></extra>"
     ))
     
-    # Industrial zones (blue) - simulated overlay
     if show_industry:
-        # We highlight tracts with high residual and high imperviousness as proxy for industrial
         industrial_zones = gdf[(gdf['residuals'] > 2) & (gdf['impervious_x'] > gdf['impervious_x'].median())]
         fig.add_trace(go.Scattermap(
             lat=industrial_zones['cy'], lon=industrial_zones['cx'], mode='markers',
@@ -603,7 +660,18 @@ elif st.session_state.chapter == 6:
             height=320, plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(color='#00d9ff', family='Courier New')
         )
         st.plotly_chart(fig2, use_container_width=True)
-        if st.button("▶ PROCEED TO CHAPTER 7"):
+        
+        st.markdown("""
+        <div class="terminal">
+            <div class="tag">▶ DETECTIVE NOTE</div>
+            <div class="text">
+                Industry is an invisible oven. Logistics hubs, factories, dark roofs. Now we know the enemy. 
+                So, let's fix it. Let's plant trees, right?
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("▶ SIMULATE TREE PLANTING"):
             advance()
 
 # ============================================
@@ -615,9 +683,8 @@ elif st.session_state.chapter == 7:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Industry is an invisible oven. But surely the solution is simple: 
-            <span class="highlight">plant trees in poor neighborhoods</span>?<br><br>
-            <b>Task:</b> Allocate a tree-planting budget. Watch the temperature model."
+            The obvious solution: plant trees in poor neighborhoods. Let's simulate a massive tree-planting campaign.<br><br>
+            <b>Task:</b> Move the slider to allocate the tree budget. Watch what happens to the temperature model.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -651,16 +718,18 @@ elif st.session_state.chapter == 7:
         <div class="terminal">
             <div class="tag">▶ THE ECO-STRUCTURAL LOCK</div>
             <div class="text">
-                <span class="highlight">64.3%</span> of poor tracts are already at the maximum tree-cover value (0.614). The metric is saturated. You cannot "plant your way" out of climate inequality.<br><br>
-                But what if we use <b>Cool Roofs</b>? They reflect sunlight. The model shows they drop temperature by <span class="highlight">-0.36°C</span>.
+                <span class="highlight">64.3%</span> of poor tracts are already at the maximum tree-cover value in the data. 
+                The metric is saturated. You cannot "plant your way" out of this. We need to change the materials.<br><br>
+                <b>Cool Roofs</b> (reflective paint) drop the temperature by <span class="highlight">-0.36°C</span>. 
+                But the effect of vulnerability isn't the same everywhere. Let's zoom in.
             </div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("▶ PROCEED TO CHAPTER 8"):
+        if st.button("▶ ANALYZE LOCAL ANOMALIES"):
             advance()
 
 # ============================================
-# CH8: GWR (LOCAL ANOMALIES) - UPDATED TOOLTIPS
+# CH8: GWR (LOCAL ANOMALIES)
 # ============================================
 elif st.session_state.chapter == 8:
     st.markdown("## 🗺️ CHAPTER 8 // LOCAL ANOMALIES (GWR)")
@@ -668,9 +737,9 @@ elif st.session_state.chapter == 8:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "We ran a <span class="highlight">Geographically Weighted Regression (GWR)</span>.<br>
-            The global effect of vulnerability is small (+0.047°C). But locally, it explodes.<br><br>
-            <b>Task:</b> Click on a <span style="color:#ff4444;">DARK RED</span> dot on the map to see where vulnerability hurts most."
+            We ran a Geographically Weighted Regression. The global effect of vulnerability is small (+0.047°C). 
+            But locally, it explodes.<br><br>
+            <b>Task:</b> Click on a <span style="color:#ff4444;">DARK RED</span> dot on the map to see where vulnerability hurts the most.
         </div>
     </div>
     <div class="objective">Click a red dot on the map to unlock Clue #8</div>
@@ -680,7 +749,6 @@ elif st.session_state.chapter == 8:
         st.error("⚠️ GWR data missing. Check gwr_coefs.csv.")
         if st.button("▶ SKIP TO CHAPTER 9"): advance()
     else:
-        # Human readable tooltips
         gdf['gwr_hover'] = gdf['gwr_svi'].apply(lambda x: f"Local Heat Effect: {x:+.2f}°C")
         
         fig = go.Figure(go.Scattermap(
@@ -717,11 +785,12 @@ elif st.session_state.chapter == 8:
                 <div class="text">
                     A single global model hides the truth. In the North-West, vulnerability makes heat 
                     <span class="highlight">much worse (+1.8°C)</span>. But in some southern green areas, 
-                    dense old buildings provide shade, and vulnerability actually correlates with cooler spots.
+                    dense old buildings provide shade, and vulnerability actually correlates with cooler spots.<br><br>
+                    But wait. What happens on the absolute worst days? The days when people actually die?
                 </div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button("▶ PROCEED TO CHAPTER 9"):
+            if st.button("▶ ANALYZE EXTREMES"):
                 advance()
 
 # ============================================
@@ -733,8 +802,8 @@ elif st.session_state.chapter == 9:
     <div class="terminal">
         <div class="tag">▶ INCOMING TRANSMISSION</div>
         <div class="text">
-            "Normal regression only predicts the *average* day. But climate change is about *extremes*.<br><br>
-            <b>Task:</b> Drag the slider to <span class="highlight">0.95 (Extreme Heat)</span> to see how the effect of vulnerability changes."
+            Normal regression predicts the average day. But climate change is about extremes.<br><br>
+            <b>Task:</b> Drag the slider to <span class="highlight">0.95 (Extreme Heat)</span> to see how the effect of vulnerability changes.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -766,13 +835,24 @@ elif st.session_state.chapter == 9:
     
     if st.session_state.ch8_solved:
         st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #9</div><div class="body">Vulnerability effect grows 10x in extreme heat (0.95 quantile)!</div></div>', unsafe_allow_html=True)
-        if st.button("▶ PROCEED TO FINAL CHAPTER"):
+        
+        st.markdown("""
+        <div class="terminal">
+            <div class="tag">▶ DETECTIVE NOTE</div>
+            <div class="text">
+                Vulnerability is a "disaster multiplier". It lies dormant on mild days, but explodes during a heatwave. 
+                We're almost done. There's one last thing you need to see. The map is lying to us.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("▶ REVEAL THE HIDDEN MAP"):
             advance()
     else:
         st.info("👆 Move the slider to 0.90 or above to see the extreme heat effect.")
 
 # ============================================
-# CH10: INVISIBLE MAJORITY (BIVARIATE LISA) - UPDATED TOOLTIPS
+# CH10: INVISIBLE MAJORITY (BIVARIATE LISA)
 # ============================================
 elif st.session_state.chapter == 10:
     st.markdown("## 👥 CHAPTER 10 // THE INVISIBLE MAJORITY")
@@ -780,10 +860,10 @@ elif st.session_state.chapter == 10:
     <div class="terminal">
         <div class="tag">▶ FINAL TRANSMISSION</div>
         <div class="text">
-            "We mapped the <span class="highlight">Bivariate LISA</span> (Local Indicators of Spatial Association).<br>
-            Red zones = High Heat + High Vulnerability.<br>
-            Orange zones = Low Heat + High Vulnerability.<br><br>
-            <b>Task:</b> Click on an <span style="color:#f39c12;">ORANGE</span> dot to reveal the hidden trap."
+            We mapped the Bivariate LISA (Local Indicators of Spatial Association).<br>
+            Red = High Heat + High Vulnerability.<br>
+            Orange = Low Heat + High Vulnerability.<br><br>
+            <b>Task:</b> Click on an <span style="color:#f39c12;">ORANGE</span> dot to reveal the trap.
         </div>
     </div>
     <div class="objective">Click an orange dot to unlock Clue #10</div>
@@ -848,7 +928,7 @@ elif st.session_state.chapter == 10:
                 advance()
 
 # ============================================
-# CH11: CASE CLOSED (With Top 3 Tracts)
+# CH11: CASE CLOSED
 # ============================================
 elif st.session_state.chapter >= 11:
     st.balloons()
@@ -867,6 +947,21 @@ elif st.session_state.chapter >= 11:
     c2.metric("Final Rank", "🕵️ MASTER DETECTIVE")
     c3.metric("Model MAPE", "2.01%")
     
+    # Easter Egg 2: The Top Tract Investigation
+    with st.expander("🚨 ACCESS CLASSIFIED FILE: TARGET #1"):
+        st.markdown("""
+        <div class="terminal" style="border-color: #ff4444;">
+            <div class="tag" style="color: #ff4444;">▶ TOP PRIORITY TARGET: TRACT 151460001206</div>
+            <div class="text">
+                • <b>Temperature:</b> 53.4°C (Lethal)<br>
+                • <b>Vulnerability:</b> 2.60 (High)<br>
+                • <b>Anomaly:</b> +3.76°C (Hotter than concrete predicts)<br>
+                • <b>Profile:</b> High concentration of single-person households, proximity to heavy logistics hubs.<br><br>
+                <i>Commander's Note: If we cool this one tract, we save hundreds of lives.</i>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("### ⚖️ FINAL REPORT")
     st.markdown("""
@@ -885,10 +980,6 @@ elif st.session_state.chapter >= 11:
             • <span class="highlight">687 tracts</span> of vulnerable people live in "cool" zones missed by heat policies.<br><br>
             <span style="color:#00ff88;">IMPACT: Using GHSL data, 1,253,569 people live in Milan. 
             ~571,146 people are in at least 1 risk zone.</span><br><br>
-            <span style="color:#ff4444;">🚨 TOP 3 URGENT TRACTS:</span><br>
-            1. <b>151460001206</b> (53.4°C, High Vuln)<br>
-            2. <b>151460002041</b> (51.4°C, High Vuln)<br>
-            3. <b>151460005131</b> (51.3°C, High Vuln)<br><br>
             <span style="color:#ffaa00;">FINAL RECOMMENDATION:</span><br>
             1. <b>Cool roofs</b> for dense poor areas (-0.36°C).<br>
             2. <b>Green buffers</b> around factories.<br>
