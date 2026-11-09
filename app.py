@@ -268,7 +268,6 @@ elif st.session_state.chapter == 1:
             if cd == 'park' and not st.session_state.clicked_park:
                 st.session_state.clicked_park = True; st.rerun()
     
-    # Easter Egg 1: Too many clicks
     if 'clicks' in st.session_state and not (st.session_state.clicked_duomo and st.session_state.clicked_park):
         st.session_state.clicks += 1
         if st.session_state.clicks == 5:
@@ -852,7 +851,7 @@ elif st.session_state.chapter == 9:
         st.info("👆 Move the slider to 0.90 or above to see the extreme heat effect.")
 
 # ============================================
-# CH10: INVISIBLE MAJORITY (BIVARIATE LISA)
+# CH10: INVISIBLE MAJORITY (BIVARIATE LISA) - FULLY REDESIGNED
 # ============================================
 elif st.session_state.chapter == 10:
     st.markdown("## 👥 CHAPTER 10 // THE INVISIBLE MAJORITY")
@@ -860,10 +859,11 @@ elif st.session_state.chapter == 10:
     <div class="terminal">
         <div class="tag">▶ FINAL TRANSMISSION</div>
         <div class="text">
-            We mapped the Bivariate LISA (Local Indicators of Spatial Association).<br>
-            Red = High Heat + High Vulnerability.<br>
-            Orange = Low Heat + High Vulnerability.<br><br>
-            <b>Task:</b> Click on an <span style="color:#f39c12;">ORANGE</span> dot to reveal the trap.
+            We mapped the <b>Bivariate LISA</b> (Local Indicators of Spatial Association). This tells us where Heat and Vulnerability overlap.<br><br>
+            🔴 <b>Red:</b> High Heat + High Vulnerability (Obvious targets)<br>
+            🟠 <b>Orange:</b> Low Heat + High Vulnerability (The Hidden Ones)<br>
+            🔵 <b>Blue:</b> Low Heat + Low Vulnerability (Safe zones)<br><br>
+            <span class="highlight">Click on an ORANGE dot to reveal the trap.</span>
         </div>
     </div>
     <div class="objective">Click an orange dot to unlock Clue #10</div>
@@ -873,42 +873,60 @@ elif st.session_state.chapter == 10:
         st.warning("⚠️ Bivariate LISA data not found.")
         if st.button("▶ CLOSE THE CASE"): advance()
     else:
+        # Filter only the most important 3 categories to remove clutter
+        key_cats = ['High Heat + High Vuln', 'Low Heat + High Vuln', 'Low Heat + Low Vuln']
         colors_map = {
             'High Heat + High Vuln': '#e74c3c',
-            'Low Heat + Low Vuln': '#3498db',
             'Low Heat + High Vuln': '#f39c12',
-            'High Heat + Low Vuln': '#9b59b6',
-            'Not Sig.': '#444'
+            'Low Heat + Low Vuln': '#3498db'
         }
         
         fig = go.Figure()
-        for cat, col in colors_map.items():
+        for cat in key_cats:
             sub = gdf[gdf['biv_cat'] == cat]
             if not sub.empty:
-                hover_text = f"<b>{cat}</b><br>Click to investigate"
+                hover_text = f"<b>{cat}</b><br>Click to investigate" if "Orange" not in cat else f"<b>{cat}</b><br>Click to investigate (Target!)"
                 fig.add_trace(go.Scattermap(
                     lat=sub['cy'], lon=sub['cx'], mode='markers',
-                    marker=dict(size=8, color=col), name=cat,
+                    marker=dict(size=12 if cat == 'Low Heat + High Vuln' else 8, # Make orange dots bigger
+                                color=colors_map[cat],
+                                line=dict(width=1, color='white') if cat == 'Low Heat + High Vuln' else None), 
+                    name=cat,
                     text=[hover_text] * len(sub), hovertemplate="%{text}<extra></extra>"
                 ))
         
         fig.update_layout(
             map=dict(style="carto-darkmatter", center=dict(lat=45.4642, lon=9.19), zoom=10.5),
             height=450, margin=dict(l=0,r=0,t=0,b=0),
-            legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.5)'), paper_bgcolor='rgba(0,0,0,0)'
+            legend=dict(font=dict(color='#00d9ff', family='Courier New'), bgcolor='rgba(0,0,0,0.8)', title="Heat vs Vulnerability"),
+            paper_bgcolor='rgba(0,0,0,0)'
         )
         
         event = st.plotly_chart(fig, on_select="rerun", selection_mode="points", use_container_width=True, key="lisa_map")
         
         if event and event.get("selection", {}).get("points"):
             idx = event.selection.points[0]['point_index']
-            tract = gdf.iloc[idx]
-            if tract['biv_cat'] == 'Low Heat + High Vuln':
-                st.warning(f"⚠️ **Warning**: Low Heat, but HIGH Vulnerability! These people are invisible to heat policies.")
-                if not st.session_state.lisa_explored:
-                    st.session_state.lisa_explored = True
-                    award_clue('lisa')
-                    st.rerun()
+            # Since we filtered the dataframe, point_index refers to the new filtered trace.
+            # We need to find which trace it was and get the correct data.
+            try:
+                point = event.selection.points[0]
+                curve_number = point['curve_number']
+                cat_name = key_cats[curve_number]
+                sub_df = gdf[gdf['biv_cat'] == cat_name]
+                tract = sub_df.iloc[point['point_index']]
+                
+                if tract['biv_cat'] == 'Low Heat + High Vuln':
+                    st.warning(f"⚠️ **Warning**: Low Heat, but HIGH Vulnerability! These people are invisible to heat policies.")
+                    if not st.session_state.lisa_explored:
+                        st.session_state.lisa_explored = True
+                        award_clue('lisa')
+                        st.rerun()
+                elif tract['biv_cat'] == 'High Heat + High Vuln':
+                    st.error(f"❌ **Target missed**: This is a Red zone. High heat AND high vulnerability. We already know about these. Look for the ORANGE dots.")
+                elif tract['biv_cat'] == 'Low Heat + Low Vuln':
+                    st.info(f"✅ **Safe Zone**: Low heat, low vulnerability. No action needed here. Look for the ORANGE dots.")
+            except Exception as e:
+                st.error("Please click directly on a colored dot.")
 
         if st.session_state.lisa_explored:
             st.markdown('<div class="clue-unlocked"><div class="title">🔍 CLUE #10</div><div class="body">687 tracts of vulnerable people live in "cool" areas. Policy targeting only hot zones will miss them!</div></div>', unsafe_allow_html=True)
@@ -920,7 +938,7 @@ elif st.session_state.chapter == 10:
                     (687 tracts)</span> are the invisible majority. These are highly vulnerable people who don't 
                     show up on heat maps.<br><br>
                     By relying only on temperature, the city leaves <span class="highlight">thousands of vulnerable 
-                    residents without help</span>.
+                    residents without help</span>. This is the fatal flaw in standard climate policy.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -947,7 +965,43 @@ elif st.session_state.chapter >= 11:
     c2.metric("Final Rank", "🕵️ MASTER DETECTIVE")
     c3.metric("Model MAPE", "2.01%")
     
-    # Easter Egg 2: The Top Tract Investigation
+    st.markdown("---")
+    st.markdown("### ⚖️ FINAL REPORT")
+    
+    st.markdown("""
+    <div class="terminal">
+        <div class="tag">▶ MISSION COMMANDER'S REPORT</div>
+        <div class="text">
+            Agent, your investigation reveals the anatomy of climate inequality in Milan:<br><br>
+            • Heat differs by <span class="highlight">6.87°C</span> across 300m.<br>
+            • Physics (concrete/trees) explains <span class="highlight">57.5%</span> of heat. SVI alone is just a proxy.<br>
+            • <span class="highlight">Loneliness</span>, not poverty, is the real face of vulnerability (+0.083°C).<br>
+            • The gap <span class="highlight">doubles in summer</span> (2.35°C vs 1.28°C).<br>
+            • <span class="highlight">59.2%</span> of anomalies come from industrial zones.<br>
+            • Trees are trapped by the <span class="highlight">data ceiling</span> (+0.04°C).<br>
+            • The local effect of vulnerability ranges from <span class="highlight">-1.9°C to +1.8°C</span> (GWR).<br>
+            • In extreme heat (95th percentile), vulnerability effect <span class="highlight">grows 10x</span>.<br>
+            • <span class="highlight">687 tracts</span> of vulnerable people live in "cool" zones missed by heat policies.<br><br>
+            <span style="color:#00ff88;">IMPACT: Using GHSL data, 1,253,569 people live in Milan. 
+            ~571,146 people are in at least 1 risk zone.</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Hackathon Alignment section
+    st.markdown("### 🎯 HACKATHON ALIGNMENT (Earth System Trend Detective)")
+    st.markdown("""
+    <div class="terminal" style="border-color: #9b59b6;">
+        <div class="tag" style="color: #9b59b6;">▶ HOW WE ANSWERED THE CHALLENGE</div>
+        <div class="text">
+            1. <b>Time Series:</b> We fused 10 years of Landsat data and 24 years of MODIS data to prove the gap is widening.<br>
+            2. <b>Anomaly Detection:</b> We used Random Forest residuals to find hidden heat sources (Industrial zones).<br>
+            3. <b>Social Integration:</b> We used FDR-corrected regressions and Bivariate LISA to map the "Invisible Majority".<br>
+            4. <b>Actionable Output:</b> We provide a Top-3 target list for immediate intervention.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
     with st.expander("🚨 ACCESS CLASSIFIED FILE: TARGET #1"):
         st.markdown("""
         <div class="terminal" style="border-color: #ff4444;">
@@ -962,34 +1016,6 @@ elif st.session_state.chapter >= 11:
         </div>
         """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### ⚖️ FINAL REPORT")
-    st.markdown("""
-    <div class="terminal">
-        <div class="tag">▶ MISSION COMMANDER'S REPORT</div>
-        <div class="text">
-            Agent, your investigation reveals the anatomy of climate inequality in Milan:<br><br>
-            • Heat differs by <span class="highlight">6.87°C</span> across 300m<br>
-            • Physics (concrete/trees) explains <span class="highlight">57.5%</span> of heat. SVI alone is just a proxy.<br>
-            • <span class="highlight">Loneliness</span>, not poverty, is the real face of vulnerability (+0.083°C).<br>
-            • The gap <span class="highlight">doubles in summer</span> (2.35°C vs 1.28°C)<br>
-            • <span class="highlight">59.2%</span> of anomalies come from industrial zones.<br>
-            • Trees are trapped by the <span class="highlight">data ceiling</span> (+0.04°C).<br>
-            • The local effect of vulnerability ranges from <span class="highlight">-1.9°C to +1.8°C</span> (GWR).<br>
-            • In extreme heat (95th percentile), vulnerability effect <span class="highlight">grows 10x</span>.<br>
-            • <span class="highlight">687 tracts</span> of vulnerable people live in "cool" zones missed by heat policies.<br><br>
-            <span style="color:#00ff88;">IMPACT: Using GHSL data, 1,253,569 people live in Milan. 
-            ~571,146 people are in at least 1 risk zone.</span><br><br>
-            <span style="color:#ffaa00;">FINAL RECOMMENDATION:</span><br>
-            1. <b>Cool roofs</b> for dense poor areas (-0.36°C).<br>
-            2. <b>Green buffers</b> around factories.<br>
-            3. <b>Loneliness registry</b> for isolated residents.<br>
-            4. <b>Subsidized AC</b> + cooling centers.<br>
-            5. <b>Target Orange Zones</b> — not just heat maps.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-    
     st.markdown("---")
     col1, col2 = st.columns(2)
     with col1:
