@@ -7,42 +7,39 @@ import json
 import os
 
 # ============================================
-# КОНФИГУРАЦИЯ И СТИЛИ (Премиум вид)
+# КОНФИГУРАЦИЯ И СТИЛИ (Премиум вид, без сайдбара)
 # ============================================
 st.set_page_config(
     page_title="Milan Heat Inequality",
     page_icon="🌡️",
     layout="wide",
-    initial_sidebar_state="collapsed" # Убираем сайдбар
+    initial_sidebar_state="collapsed" # Сайдбар убран
 )
 
-# Кастомный CSS для премиального вида
+# Кастомный CSS для журнального дизайна
 st.markdown("""
 <style>
-    /* Убираем лишние отступы сверху */
-    .block-container { padding-top: 2rem; padding-bottom: 2rem; }
-    
-    /* Стили для заголовков */
+    .block-container { padding-top: 2rem; padding-bottom: 2rem; max-width: 95%; }
     h1, h2, h3 { font-family: 'Helvetica Neue', sans-serif; color: #1a1a2e; }
-    .main-title { font-size: 2.8rem; font-weight: 800; text-align: center; margin-bottom: 0; }
-    .sub-title { font-size: 1.1rem; color: #666; text-align: center; margin-bottom: 2rem; }
+    .main-title { font-size: 3rem; font-weight: 800; text-align: center; margin-bottom: 0; letter-spacing: -1px; }
+    .sub-title { font-size: 1.1rem; color: #666; text-align: center; margin-bottom: 2.5rem; font-weight: 300;}
     
-    /* Стили для KPI карточек */
+    /* KPI Cards */
     .metric-card {
-        background: white; border-radius: 12px; padding: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 4px solid #e74c3c;
-        text-align: center; height: 100%;
+        background: white; border-radius: 12px; padding: 25px 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05); border-top: 4px solid #e74c3c;
+        text-align: center; height: 100%; transition: transform 0.2s;
     }
-    .metric-value { font-size: 2rem; font-weight: bold; color: #1a1a2e; margin: 0; }
-    .metric-label { font-size: 0.9rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    .metric-card:hover { transform: translateY(-5px); }
+    .metric-value { font-size: 2.5rem; font-weight: 800; color: #1a1a2e; margin: 0; line-height: 1; }
+    .metric-label { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1.5px; margin-top: 10px;}
     
-    /* Стили для текстовых блоков */
+    /* Информационные блоки */
     .insight-box {
-        background: #f8f9fa; border-left: 5px solid #e74c3c; padding: 1.5rem;
-        border-radius: 0 8px 8px 0; margin: 1rem 0;
+        background: #f8f9fa; border-left: 6px solid #3498db; padding: 1.5rem;
+        border-radius: 0 8px 8px 0; margin: 1.5rem 0; font-size: 1.05rem; color: #333;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.02);
     }
-    
-    /* Убираем стандартный фон Streamlit */
     .stApp { background-color: #f4f6f9; }
 </style>
 """, unsafe_allow_html=True)
@@ -52,18 +49,24 @@ st.markdown("""
 # ============================================
 @st.cache_data
 def load_data():
-    try: gdf = gpd.read_file("app_data.geojson")
-    except: gdf = None
-    try: df = pd.read_csv("app_data.csv")
-    except: df = None
-    try: ts = pd.read_csv("time_series.csv")
-    except: ts = None
+    try: 
+        gdf = gpd.read_file("app_data.geojson")
+    except: 
+        gdf = None
+    try: 
+        df = pd.read_csv("app_data.csv")
+    except: 
+        df = None
+    try: 
+        ts = pd.read_csv("time_series.csv")
+    except: 
+        ts = None
     return gdf, df, ts
 
 gdf, df, ts = load_data()
 
 if gdf is None:
-    st.error("❌ `app_data.geojson` не найден. Загрузите файл в репозиторий.")
+    st.error("❌ `app_data.geojson` не найден. Загрузите файл в папку с приложением.")
     st.stop()
 
 # ============================================
@@ -73,12 +76,12 @@ st.markdown('<div class="main-title">🌡️ Milan Heat Inequality Explorer</div
 st.markdown('<div class="sub-title">NASA Space Apps Challenge 2026 | Earth System Trend Detective</div>', unsafe_allow_html=True)
 
 # ============================================
-# НАВИГАЦИЯ (Горизонтальная, без сайдбара)
+# НАВИГАЦИЯ (Горизонтальные вкладки)
 # ============================================
 tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "📊 Dashboard", 
+    "📊 Executive Dashboard", 
     "🗺️ Interactive Map", 
-    "📈 Trends & Analytics", 
+    "📈 Trend Analysis", 
     "🏭 Deep Dive", 
     "🛠️ Policy Simulator"
 ])
@@ -87,7 +90,6 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 # ВКЛАДКА 1: DASHBOARD
 # ============================================
 with tab1:
-    # KPI Cards
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown('<div class="metric-card"><div class="metric-value">571k</div><div class="metric-label">People at Risk</div></div>', unsafe_allow_html=True)
@@ -100,15 +102,14 @@ with tab1:
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Quick Map
     st.subheader("Quick Map Preview")
     geojson = json.loads(gdf.to_json())
     
-    # ИСПОЛЬЗУЕМ НОВЫЙ МЕТОД (fix для AttributeError)
-    fig = px.choropleth_mapbox(
+    # НОВЫЙ СИНТАКСИС PLOTLY (choropleth_map вместо mapbox)
+    fig = px.choropleth_map(
         gdf, geojson=geojson, locations='SEZ2011', featureidkey='properties.SEZ2011',
         color='mean_lst', color_continuous_scale='YlOrRd', range_color=(35, 55),
-        mapbox_style="carto-positron", zoom=10.5, center={"lat": 45.4642, "lon": 9.1900},
+        map_style="carto-positron", zoom=10.5, center={"lat": 45.4642, "lon": 9.1900},
         opacity=0.7, labels={'mean_lst': 'Temperature (°C)'}
     )
     fig.update_layout(margin={"r":0,"t":0,"l":0,"b":0}, height=500)
@@ -142,10 +143,11 @@ with tab2:
 
     filtered_geojson = json.loads(filtered.to_json())
     
-    fig = px.choropleth_mapbox(
+    # НОВЫЙ СИНТАКСИС PLOTLY
+    fig = px.choropleth_map(
         filtered, geojson=filtered_geojson, locations='SEZ2011', featureidkey='properties.SEZ2011',
         color=selected, color_continuous_scale='Viridis',
-        mapbox_style="carto-darkmatter", # Темная карта выглядит премиально
+        map_style="carto-darkmatter", 
         zoom=10.5, center={"lat": 45.4642, "lon": 9.1900}, opacity=0.8,
         labels={selected: metric}
     )
@@ -189,12 +191,12 @@ with tab4:
     with c1:
         if os.path.exists("screenshot_logistics.png"):
             st.image("screenshot_logistics.png", use_column_width=True)
-        st.markdown('<div class="insight-box"><b>Logistics Heat Trap:</b> Dark roofs and asphalt reach 53°C+.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box"><b>Logistics Heat Trap:</b> Dark roofs and asphalt reach 53°C+. Standard models miss this.</div>', unsafe_allow_html=True)
     
     with c2:
         if os.path.exists("screenshot_railway.png"):
             st.image("screenshot_railway.png", use_column_width=True)
-        st.markdown('<div class="insight-box"><b>Steel Desert:</b> Railway yards act as massive heat sinks.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="insight-box"><b>Steel Desert:</b> Railway yards act as massive heat sinks, creating a 4.3x concentration of heat anomalies.</div>', unsafe_allow_html=True)
 
 # ============================================
 # ВКЛАДКА 5: POLICY SIMULATOR
@@ -209,13 +211,13 @@ with tab5:
     
     if intervention == "🌳 Plant Trees":
         effect, color = 0.04, "#e74c3c"
-        reason = "Data ceiling reached. Marginal cooling effect."
+        reason = "Data ceiling reached. Marginal cooling effect (+0.04°C)."
     elif intervention == "🏠 Cool Roofs (Reflective)":
         effect, color = -0.36, "#3498db"
-        reason = "Highly effective. Reduces surface temperature significantly."
+        reason = "Highly effective. Reduces surface temperature significantly (-0.36°C)."
     else:
         effect, color = -0.32, "#9b59b6"
-        reason = "Slightly less effective than cool roofs alone."
+        reason = "Slightly less effective than cool roofs alone (-0.32°C)."
 
     c1, c2 = st.columns(2)
     c1.metric("Current Temperature", f"{current_temp:.2f}°C")
