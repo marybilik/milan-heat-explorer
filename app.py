@@ -97,7 +97,6 @@ def load_data():
     gdf['cx'] = gdf_wgs.geometry.centroid.x
     gdf['cy'] = gdf_wgs.geometry.centroid.y
     
-    # Drop NaNs for clean maps
     gdf = gdf.dropna(subset=['cx', 'cy'])
     
     ts = pd.read_csv("time_series.csv") if os.path.exists("time_series.csv") else None
@@ -115,9 +114,8 @@ except Exception as e:
 defaults = {
     'chapter': 0, 
     'evidence': [],
-    'ch1_step': 0, 'ch2_step': 0, 'ch3_step': 0, 'ch4_step': 0,
+    'ch1_step': 0, 'ch2_step': 0, 'ch3_step': 0, 'ch4_step': 0, 'ch5_step': 0,
     'clicked_duomo': False, 'clicked_park': False, 
-    'ch1_quiz': False, 'ch2_quiz': False, 'ch3_quiz': False,
     'ch4_lisa_solved': False
 }
 for k, v in defaults.items():
@@ -240,7 +238,6 @@ elif st.session_state.chapter == 1:
         
         if st.button("▶ SUBMIT PREDICTION"):
             if guess and "B)" in guess:
-                st.session_state.ch1_quiz = True
                 award_clue('illusion')
                 st.session_state.ch1_step = 2
                 st.rerun()
@@ -275,7 +272,6 @@ elif st.session_state.chapter == 1:
             if ans and "C)" in ans:
                 award_clue('loneliness')
                 st.success("✅ Correct. Loneliness is the hidden face of heat.")
-                st.session_state.ch2_step = 1
                 st.session_state.ch1_step = 3
                 st.rerun()
             else:
@@ -301,9 +297,6 @@ elif st.session_state.chapter == 2:
     st.markdown("## 🍂 PHASE 2 // THE TIME BOMB")
     
     if st.session_state.ch2_step == 0:
-        st.session_state.ch2_step = 1 # Skip to season
-        
-    if st.session_state.ch2_step == 1:
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ ACTION REQUIRED</div>
@@ -323,12 +316,12 @@ elif st.session_state.chapter == 2:
         if season == 'Summer':
             if st.button("🔍 RECORD LETHAL SEASON"):
                 award_clue('seasonal')
-                st.session_state.ch2_step = 2
+                st.session_state.ch2_step = 1
                 st.rerun()
         else:
             st.info("ℹ️ Look for the season where Health Risk spikes.")
             
-    elif st.session_state.ch2_step == 2:
+    elif st.session_state.ch2_step == 1:
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ CLUE #4: THE SUMMER TRAP</div>
@@ -339,7 +332,7 @@ elif st.session_state.chapter == 2:
         </div>
         """, unsafe_allow_html=True)
         
-        map_choice = st.radio("SELECT DATA LAYER:", ["🌡️ Heat (LST)", "💨 Pollution (NO2)"], horizontal=True)
+        map_choice = st.radio("SELECT DATA LAYER TO COMPARE:", ["🌡️ Heat (LST)", "💨 Pollution (NO2)"], horizontal=True)
         color_col = 'mean_lst' if "Heat" in map_choice else 'no2'
         
         plot_df = gdf.dropna(subset=[color_col]) if color_col == 'no2' else gdf
@@ -354,10 +347,10 @@ elif st.session_state.chapter == 2:
         
         if st.button("🔍 I SEE THE OVERLAP"):
             award_clue('double_burden')
-            st.session_state.ch2_step = 3
+            st.session_state.ch2_step = 2
             st.rerun()
             
-    elif st.session_state.ch2_step == 3:
+    elif st.session_state.ch2_step == 2:
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ CLUE #5: DOUBLE BURDEN</div>
@@ -452,7 +445,7 @@ elif st.session_state.chapter == 4:
         st.markdown("""
         <div class="terminal">
             <div class="tag">▶ ACTION REQUIRED</div>
-            <div class="text">We ran a Geographically Weighted Regression. Click on a DARK RED zone to see where vulnerability hurts most.</div>
+            <div class="text">We ran a Geographically Weighted Regression. Click on a <b>DARK RED</b> zone to see where vulnerability hurts most.</div>
         </div>
         """, unsafe_allow_html=True)
         
