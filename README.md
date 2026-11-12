@@ -2,10 +2,12 @@
 
 [![NASA Space Apps 2026](https://img.shields.io/badge/NASA%20Space%20Apps-2026-blue.svg)](https://spaceappschallenge.org)
 [![Live App](https://img.shields.io/badge/🚀_PLAY_THE_LIVE_GAME-Click_Here-00d9ff?style=for-the-badge)](https://milan-heat-explorer.streamlit.app/)
+[![Video Demo](https://img.shields.io/badge/🎥_WATCH_THE_DEMO-YouTube-red?style=for-the-badge)](https://youtu.be/7MqjsmNJB54)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ### 🎥 Project Demo & Links
 * **[🚀 Play the Live Interactive Game Here](https://milan-heat-explorer.streamlit.app/)**
+* **[🎥 Watch the 3-Minute Video Demo Here](https://youtu.be/7MqjsmNJB54)**
 * **[📓 View the Scientific Jupyter Notebook](scientific_analysis.ipynb)** (Contains all spatial regressions, GWR, LISA, and Random Forest models)
 * *(Note: Due to the large size of interactive Google Earth Engine maps, the notebook might take a moment to load or require local download).*
 
@@ -109,6 +111,7 @@ Clone the repository:
    ```bash
    git clone https://github.com/marybilik/milan-heat-explorer.git
    ```
+   
 Install Python dependencies:
 
 ```bash
