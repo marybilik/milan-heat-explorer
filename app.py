@@ -653,7 +653,7 @@ elif st.session_state.chapter >= 6:
             st.rerun()
     with col2:
         st.markdown("""
-        <a href="https://github.com/marybilik" target="_blank" style="text-decoration:none;">
+        <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/scientific_analysis.ipynb" target="_blank" style="text-decoration:none;">
             <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
                 📂 VIEW FULL NOTEBOOK
             </div>
