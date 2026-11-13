@@ -7,10 +7,11 @@
 
 ### 🎥 Project Demo & Links
 - **[🚀 Play the Live Interactive Game Here](https://milan-heat-explorer.streamlit.app/)**
+- **[📄 Read the Executive Research Brief (PDF)](Executive_Research_Brief.pdf)** (Quick 5-page summary of the problem, data, and methodology for judges)
 - **[🎥 Watch the 3-Minute Video Demo Here](https://youtu.be/7MqjsmNJB54)**
 - **[📓 View the Scientific Jupyter Notebook](scientific_analysis.ipynb)** (Contains all spatial regressions, GWR, LISA, and Random Forest models)
 
-
+---
 
 ## 💡 Motivation: Why a Game?
 
@@ -18,7 +19,7 @@ Climate data is complex, intimidating, and often hidden in static, academic pape
 
 **We built a detective game because data tells, but stories sell.** By turning the user into a "Climate Detective," we force them to actively uncover the invisible inequalities of Milan. Instead of just showing a red heat map, we challenge the user to measure the 6.87°C gap between the Duomo and Parco Sempione, discover the "Loneliness Trap," and expose the hidden "Industrial Ovens." Gamification lowers the barrier to entry, making complex spatial statistics accessible, memorable, and actionable.
 
-
+---
 
 ## 🚨 The Problem: The Anatomy of Climate Inequality
 
@@ -30,7 +31,7 @@ Our analysis of Milan reveals a silent crisis:
 4. **The Invisible Majority:** **687 census tracts** have *high vulnerability* but *low heat*, meaning they are currently ignored by heat-targeted climate policies.
 5. **The Tree Ceiling:** Planting trees in dense poor areas yields almost no cooling (`+0.04°C`) due to physical space limits (64.3% of poor tracts are at the data ceiling). **Cool Roofs (`-0.36°C`) are the only viable physical intervention.**
 
-
+---
 
 ## 📸 Ground-Truth Evidence: Exposing the "Industrial Ovens"
 
@@ -41,7 +42,7 @@ To validate our satellite residuals (`> +2°C` hotter than impervious surface mo
 | ![Logistics Hub Heat Anomaly](screenshot_logistics.png) | ![Railway Yard Heat Anomaly](screenshot_railway.png) |
 | **Industrial & Freight Yards:** Wide asphalt aprons, loading bays, and idle fleet depots trap extreme heat immediately adjacent to residential blocks. | **Rail Infrastructure (Triboniano / Certosa):** Unshaded steel tracks, ballast beds, and industrial warehouses generate severe localized heat islands bordering dense housing. |
 
-
+---
 
 ## 🎮 The Solution: The Game
 
@@ -53,6 +54,7 @@ Built with Streamlit, this interactive experience guides the user through 5 phas
 - **Phase 4: The Hotspots:** Interact with GWR (Geographically Weighted Regression) coefficients locally (`-1.9°C` to `+1.8°C`).
 - **Phase 5: The Invisible Majority:** Find the "Orange Zones" (High Vulnerability + Low Heat, `687` tracts) missed by policies.
 
+---
 
 ## 🔬 Methodology & Tech Stack
 
@@ -61,6 +63,7 @@ Built with Streamlit, this interactive experience guides the user through 5 phas
 - **Machine Learning:** Random Forest Regressor used for counterfactual simulations (Trees vs. Cool Roofs).
 - **Tech Stack:** Python, Streamlit, GeoPandas, Plotly, SciPy, Statsmodels, PySAL, mgwr.
 
+---
 
 ## 📊 Data Sources & References (NASA Open Data Rules)
 
@@ -100,13 +103,13 @@ In compliance with the NASA Space Apps Challenge "Cite Everything" rules, all da
 - **PyMannKendall** (MIT License) — Used for time-series trend analysis.
 - **Plotly**, **Matplotlib** & **Seaborn** (MIT/BSD-3-Clause)
 
-
+---
 
 ## 📂 Repository Structure
 
 - `app.py` — The Streamlit interactive game.
 - `scientific_analysis.ipynb` — The full scientific notebook containing EDA, regressions, GWR, LISA, and simulations.
-- `scientific_analysis.py` — Clean Python script version of the scientific analysis.
+- `Executive_Research_Brief.pdf` — Short executive summary of the methodology and findings.
 - `app_data.geojson` — The spatial dataset driving the interactive map.
 - `gwr_coefs.csv` — Pre-calculated GWR coefficients for the map.
 - `time_series.csv` — 24-year LST trends (MODIS) for Rich vs Poor.
@@ -114,26 +117,27 @@ In compliance with the NASA Space Apps Challenge "Cite Everything" rules, all da
 - `screenshot_logistics.jpg` & `screenshot_railway.jpg` — 3D Google Earth ground-truth overlays validating industrial and railway heat anomalies.
 - `packages.txt` & `requirements.txt` — System and Python dependencies.
 
-
+---
 
 ## 🚀 How to Run Locally
 
 Clone the repository:
+
 ```bash
-git clone [https://github.com/marybilik/milan-heat-explorer.git](https://github.com/marybilik/milan-heat-explorer.git)
+git clone https://github.com/marybilik/milan-heat-explorer.git
 cd milan-heat-explorer
 ```
 Install Python dependencies:
 
-```Bash
+```bash
 pip install -r requirements.txt
 ```
 
 Run the app:
 
-```Bash
+```bash
 streamlit run app.py
 ```
 
 📄 License
-This project is licensed under the MIT License. You are free to use, modify, and distribute this code for non-commercial and commercial purposes, provided the original authors are credited.
+This project is licensed under the MIT License. You are free to use, modify, and distribute this code for non-commercial and commercial purposes, provided the original author is credited
