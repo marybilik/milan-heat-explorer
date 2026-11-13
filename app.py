@@ -1,4 +1,3 @@
-```python
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
@@ -647,7 +646,6 @@ elif st.session_state.chapter >= 6:
 
     st.markdown("---")
     
-    # ОБНОВЛЕННЫЙ БЛОК С ТРЕМЯ КНОПКАМИ
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("🔄 REPLAY MISSION", use_container_width=True):
