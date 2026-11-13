@@ -36,9 +36,9 @@ Our analysis of Milan reveals a silent crisis:
 
 To validate our satellite residuals (`> +2°C` hotter than impervious surface models predict), we overlaid extreme heat anomaly polygons onto 3D Google Earth imagery. The ground-truth evidence confirms that non-residential concrete corridors act as massive thermal batteries right next to vulnerable neighborhoods:
 
-| Logistics & Bus Depots (`screenshot_logistics.jpg`) | Railway Corridors & Yards (`screenshot_railway.jpg`) |
+| Logistics & Bus Depots (`screenshot_logistics.png`) | Railway Corridors & Yards (`screenshot_railway.png`) |
 | :---: | :---: |
-| ![Logistics Hub Heat Anomaly](screenshot_logistics.jpg) | ![Railway Yard Heat Anomaly](screenshot_railway.jpg) |
+| ![Logistics Hub Heat Anomaly](screenshot_logistics.png) | ![Railway Yard Heat Anomaly](screenshot_railway.png) |
 | **Industrial & Freight Yards:** Wide asphalt aprons, loading bays, and idle fleet depots trap extreme heat immediately adjacent to residential blocks. | **Rail Infrastructure (Triboniano / Certosa):** Unshaded steel tracks, ballast beds, and industrial warehouses generate severe localized heat islands bordering dense housing. |
 
 ---
