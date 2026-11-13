@@ -1,3 +1,4 @@
+```python
 import streamlit as st
 import pandas as pd
 import geopandas as gpd
@@ -645,17 +646,27 @@ elif st.session_state.chapter >= 6:
         """, unsafe_allow_html=True)
 
     st.markdown("---")
-    col1, col2 = st.columns(2)
+    
+    # ОБНОВЛЕННЫЙ БЛОК С ТРЕМЯ КНОПКАМИ
+    col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🔄 REPLAY MISSION"):
+        if st.button("🔄 REPLAY MISSION", use_container_width=True):
             for k in list(defaults.keys()):
                 st.session_state[k] = defaults[k]
             st.rerun()
     with col2:
         st.markdown("""
+        <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/Executive_Research_Brief.pdf" target="_blank" style="text-decoration:none;">
+            <div style="background:#ffaa00; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
+                📄 EXECUTIVE BRIEF
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+    with col3:
+        st.markdown("""
         <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/scientific_analysis.ipynb" target="_blank" style="text-decoration:none;">
             <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
-                📂 VIEW FULL NOTEBOOK
+                📓 FULL NOTEBOOK
             </div>
         </a>
         """, unsafe_allow_html=True)
