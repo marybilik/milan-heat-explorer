@@ -646,28 +646,41 @@ elif st.session_state.chapter >= 6:
 
     st.markdown("---")
     
-    col1, col2, col3 = st.columns(3)
+    # ОБНОВЛЕННЫЙ БЛОК С 4 КНОПКАМИ
+    col1, col2, col3, col4 = st.columns(4)
+    
     with col1:
-        if st.button("🔄 REPLAY MISSION", use_container_width=True):
-            for k in list(defaults.keys()):
-                st.session_state[k] = defaults[k]
-            st.rerun()
+        st.markdown("""
+        <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/Pitch_Deck.pdf" target="_blank" style="text-decoration:none;">
+            <div style="background:#9b59b6; color:#ffffff; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; font-size:0.85rem; letter-spacing:1px;">
+                📊 PITCH DECK
+            </div>
+        </a>
+        """, unsafe_allow_html=True)
+
     with col2:
         st.markdown("""
         <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/Executive_Research_Brief.pdf" target="_blank" style="text-decoration:none;">
-            <div style="background:#ffaa00; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
-                📄 EXECUTIVE BRIEF
+            <div style="background:#ffaa00; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; font-size:0.85rem; letter-spacing:1px;">
+                📄 EXEC BRIEF
             </div>
         </a>
         """, unsafe_allow_html=True)
+
     with col3:
         st.markdown("""
         <a href="https://github.com/marybilik/milan-heat-explorer/blob/main/scientific_analysis.ipynb" target="_blank" style="text-decoration:none;">
-            <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; letter-spacing:2px;">
-                📓 FULL NOTEBOOK
+            <div style="background:#00d9ff; color:#050814; padding:14px; border-radius:4px; text-align:center; font-weight:bold; cursor:pointer; font-family:'Courier New'; font-size:0.85rem; letter-spacing:1px;">
+                📓 NOTEBOOK
             </div>
         </a>
         """, unsafe_allow_html=True)
+
+    with col4:
+        if st.button("🔄 REPLAY", use_container_width=True):
+            for k in list(defaults.keys()):
+                st.session_state[k] = defaults[k]
+            st.rerun()
 
 # ============================================
 # PERSISTENT EVIDENCE LOG
